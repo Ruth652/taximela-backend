@@ -24,3 +24,5 @@ stop_id,stop_name,stop_lat,stop_lon
 23,Abem,9.035417,38.852695
 24,Tafo Aba Kiros,9.060659,38.881275
 25,Tafo Mission,9.07884,38.904154
+26,Fiyel Bet,9.010284,38.851789
+27,Summit,9.002437,38.851577

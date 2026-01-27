@@ -5,3 +5,4 @@ route_id,route_short_name,route_long_name,route_type
 4,92,Megenagna Inside → Tafo Adebabay End,3
 5,119,Megenagna Up → Tafo Mission,3
 6,85,Derartu Adebabay → Tafo Mission,3
+91,91,Megenagna Inside → Summit,3
