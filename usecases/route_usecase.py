@@ -9,7 +9,15 @@ async def get_trip_plan(data):
         data.date,
         data.time
     )
-    return result["data"]["plan"]["itineraries"]
+    
+    # Get itineraries from OTP response
+    itineraries = result.get("plan", {}).get("itineraries", [])
+    
+    # Add numberOfTransfers to match expected format
+    for itinerary in itineraries:
+        itinerary["numberOfTransfers"] = itinerary.get("transfers", 0)
+    
+    return itineraries
 
 
 
