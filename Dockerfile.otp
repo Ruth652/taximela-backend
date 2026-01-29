@@ -8,8 +8,12 @@ WORKDIR /app/otp
 # Download OTP JAR
 RUN curl -L -o otp-2.3.0-shaded.jar https://repo1.maven.org/maven2/org/opentripplanner/otp/2.3.0/otp-2.3.0-shaded.jar
 
-# Copy graph and GTFS data
-COPY otp/graphs/ /app/otp/graphs/
+# Copy GTFS data
+COPY data/gtfs/ /app/otp/graphs/default/gtfs/
+COPY data/router-config.json /app/otp/graphs/default/
+
+# Build graph
+RUN java -Xmx1G -jar otp-2.3.0-shaded.jar --build --save graphs/default
 
 # Expose port
 EXPOSE 8080
