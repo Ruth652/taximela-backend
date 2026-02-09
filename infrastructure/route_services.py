@@ -86,7 +86,7 @@ async def fetch_route_from_otp(from_lat, from_lon, to_lat, to_lon, date, time):
             print(f"Response status: {response.status_code}")
             response.raise_for_status()
             return response.json()
-        except httpx.HTTPError as e:
+    except httpx.HTTPError as e:
             # Catch network errors, timeouts, and HTTP status errors
             return {"error": str(e)}
 
