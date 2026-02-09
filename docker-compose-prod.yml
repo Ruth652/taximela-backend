@@ -1,0 +1,50 @@
+# version: "3.9"
+
+# services:
+#   backend:
+#     build: .
+#     container_name: taximela-backend
+#     ports:
+#       - "8000:8000"
+#     environment:
+#       # CRITICAL: Use the service name 'otp', NOT localhost
+#       OTP_BASE_URL: http://otp:8080/otp/routers/default/index/graphql
+#     depends_on:
+#       otp:
+#         condition: service_started
+
+#   otp:
+#     image: opentripplanner/opentripplanner:2.8.1
+#     container_name: otp-server
+#     # Remove the 'command' entirely to let the image use its defaults
+#     # Or use this exact syntax if you must specify a directory:
+#     command: ["/var/otp"] 
+#     environment:
+#       JAVA_TOOL_OPTIONS: "-Xmx4G"
+#     volumes:
+#       # Map your data folder to the image's default base directory
+#       - ./otp/graphs/ethiopia:/var/otp
+#     ports:
+#       - "8080:8080"
+ 
+version: "3.9"
+
+services:
+  otp:
+    build: ./otp-server
+    container_name: otp-server
+    ports:
+      - "8080:8080"
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx4G"
+    command: ["java", "-Xmx4G", "-jar", "otp.jar", "--load", ".", "--serve"]
+
+  backend:
+    build: .
+    container_name: taximela-backend
+    ports:
+      - "8000:8000"
+    environment:
+      OTP_BASE_URL: http://otp:8080/otp/routers/default/index/graphql
+    depends_on:
+      - otp
