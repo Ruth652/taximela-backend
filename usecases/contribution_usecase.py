@@ -14,3 +14,10 @@ class submitContributionsUsecase:
             trust_score_at_submit=data.trust_score_at_submit,
         )
         return await self.contribution_repo.save(contribution)
+
+class UpdateContributionStatusUsecase:
+    def __init__(self, repo):
+        self.repo = repo 
+
+    async def execute(self, contribution_id: str, status: str):
+        return await self.repo.update_status(contribution_id, status)

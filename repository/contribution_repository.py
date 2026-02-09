@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from domain.contribution_model import Contribute
+from domain.contribution_model import Contribute, ContributionStatusEnum
 import json
 
 class ContributionRepository:
@@ -14,7 +14,8 @@ class ContributionRepository:
             target_type=contribution.target_type,
             target_id=contribution.target_id,
             description=description_str,
-            trust_score_at_submit=contribution.trust_score_at_submit 
+            trust_score_at_submit=contribution.trust_score_at_submit,
+            status=ContributionStatusEnum.pending_review 
         )
         
         self.db.add(db_obj)
@@ -22,3 +23,15 @@ class ContributionRepository:
         self.db.refresh(db_obj)
         
         return db_obj
+    
+    async def update_status(self, contribution_id: int, status: str):
+        obj = self.db.query(Contribute).filter(Contribute.id == contribution_id).first()
+        
+        if not obj:
+            raise ValueError("Contribution not found")
+        
+        obj.status = ContributionStatusEnum(status)
+        
+        self.db.commit()    
+        self.db.refresh(obj)
+        return obj

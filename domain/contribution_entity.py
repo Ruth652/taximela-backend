@@ -21,5 +21,6 @@ class Contribution:
             user_id=data.user_id,
             target_type=data.target_type,
             target_id=data.target_id,
-            description=data.description
+            description=data.description,
+            status=data.status,
         )
