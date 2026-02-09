@@ -8,8 +8,10 @@ async def get_trip_plan(data):
         data.to_lat,
         data.to_lon
     )
+
     if "data" not in result:
         raise Exception(f"Unexpected API response: {result}")
+
 
     if "plan" not in result["data"]:
         raise Exception(f"No plan in response: {result}")
