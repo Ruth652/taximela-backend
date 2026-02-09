@@ -1,12 +1,9 @@
-<<<<<<< HEAD
-venv/
+.env
 __pycache__/
 .env
 *.pyc
 .DS_Store
-=======
 ethiopia.osm.pbf
 graph.obj
 venv/
 otp.jar
->>>>>>> ruthg
