@@ -1,0 +1,10 @@
+
+fastapi
+uvicorn
+python-dotenv
+sqlalchemy
+httpx
+psycopg2-binary
+requests
+geopy
+firebase-admin
