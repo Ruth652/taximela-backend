@@ -23,6 +23,8 @@ class Contribution(Base):
             name="contribution_status"
         )
     )
+    target_type = Column(String, nullable=False)
+    target_id = Column(String, nullable=True)
     trust_score_at_submit = Column(Float)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
