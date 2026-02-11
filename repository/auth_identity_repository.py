@@ -11,4 +11,4 @@ class AuthIdentityRepository:
         or None if not found.
         """
         record = self.db.query(AuthIdentity).filter(AuthIdentity.firebase_uid == firebase_uid).first()
-        return str(record.entity_id) if record and record.entity_id else None
+        return record.entity_id if record else None
