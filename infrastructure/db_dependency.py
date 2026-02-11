@@ -1,4 +1,11 @@
-from infrastructure.database import SessionLocal
+from sqlalchemy.orm import sessionmaker
+from infrastructure.database import engine
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
 def get_db():
     db = SessionLocal()

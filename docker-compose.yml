@@ -1,14 +1,22 @@
-version: "3.9"
-
 services:
+  otp:
+    image: opentripplanner/opentripplanner:2.8.1
+    container_name: otp
+    volumes:
+      - ./data/otp-build:/var/otp/data
+    command: --build /var/otp/data --serve
+    ports:
+      - "8080:8080"
+
   api:
     build: .
+    container_name: api
     ports:
       - "8000:8000"
     volumes:
       - .:/app
-      - pip-cache:/usr/local/lib/python3.11/site-packages
+    depends_on:
+      - otp
+    env_file:
+      - .env
     command: uvicorn delivery.main:app --host 0.0.0.0 --port 8000 --reload
-
-volumes:
-  pip-cache:
