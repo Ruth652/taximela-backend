@@ -1,6 +1,9 @@
+
 from repository.auth_identity_repository import AuthIdentityRepository
 from repository.contribution_repository import ContributionRepository
 from fastapi import HTTPException, status
+from domain.contribution_model import Contribute
+
 import uuid
 
 def _is_valid_uuid(val: str) -> bool:
@@ -33,3 +36,28 @@ def get_my_contribution_stats(db, requested_user_id: str, firebase_uid: str):
 
     repo = ContributionRepository(db)
     return repo.get_contribution_stats_by_user_uuid(requested_internal_uuid)
+
+
+
+class submitContributionsUsecase:
+    def __init__(self, contribution_repo):
+        self.contribution_repo = contribution_repo
+        
+    
+    
+    async def execute(self, data):
+        contribution = Contribute(
+            user_id=data.user_id,
+            target_type=data.target_type,
+            description=data.description,
+            trust_score_at_submit=data.trust_score_at_submit,
+        )
+        return await self.contribution_repo.save(contribution)
+
+class UpdateContributionStatusUsecase:
+    def __init__(self, repo):
+        self.repo = repo 
+
+    async def execute(self, contribution_id: str, status: str):
+        return await self.repo.update_status(contribution_id, status)
+
