@@ -1,6 +1,9 @@
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 
+class UserNotFoundError(Exception): pass
+class NoUpdateFieldsError(Exception): pass
+
 def create_user_first_login(db, firebase_uid, email, payload: dict | None):
     # check if firebase id exists in auth_identity and return existing user
     # check if email exists in users table and return
@@ -17,7 +20,6 @@ def create_user_first_login(db, firebase_uid, email, payload: dict | None):
         "firebase_uid": firebase_uid,
         "email": user.email,
         "full_name": user.full_name,
-        "created_at": user.created_at,
         }
 
 
@@ -43,6 +45,43 @@ def create_user_first_login(db, firebase_uid, email, payload: dict | None):
         "firebase_uid": firebase_uid,
         "email": user.email,
         "full_name": user.full_name,
-        "created_at": user.created_at,
         
     }
+
+def get_current_user(db, firebase_uid: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        return None
+    
+    return user_repo.get_user_by_id(user_id)
+
+def update_current_user(db, firebase_uid: str, payload: dict):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        raise UserNotFoundError()
+
+    allowed_fields = {
+        "full_name",
+        "preferred_language",
+        "profile_picture_url"
+    }
+
+    update_data = {
+        key: value
+        for key, value in payload.dict().items()
+        if key in allowed_fields and value is not None
+    }
+
+    if not update_data:
+        raise NoUpdateFieldsError()
+
+        
+    return user_repo.update_user_profile(user_id, update_data)
+    
+    

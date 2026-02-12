@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from domain.user_model import User
+from sqlalchemy.exc import SQLAlchemyError
+
 
 class UserRepository:
     def __init__(self, db: Session):
@@ -19,9 +21,30 @@ class UserRepository:
             preferred_language = preferred_language,
 
         )
-        
+
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
         return user
+    def get_user_by_id(self,user_id):
+        user = self.db.query(User).filter(User.id == user_id).first()
+
+        if not user:
+            return None
         
+        return user
+    def update_user_profile(self, user_id, update_data):
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise UserNotFoundError()
+
+        try:
+            for key, value in update_data.items():
+                setattr(user, key, value)
+
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+        except SQLAlchemyError:
+            self.db.rollback()
+            raise UserUpdateFailedError()
