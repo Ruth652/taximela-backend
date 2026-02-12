@@ -12,3 +12,11 @@ class AuthIdentityRepository:
         """
         record = self.db.query(AuthIdentity).filter(AuthIdentity.firebase_uid == firebase_uid).first()
         return record.entity_id if record else None
+
+    def create_auth_identity(self, firebase_uid, entity_id):
+        record = AuthIdentity(
+            firebase_uid=firebase_uid,
+            entity_id=entity_id
+        )
+        self.db.add(record)
+        self.db.commit()

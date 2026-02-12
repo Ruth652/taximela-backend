@@ -37,7 +37,6 @@ async def get_user_contributions_controller(
 ):
     auth_user_id = firebase_user["uid"]
 
-    repo = ContributionRepository(db)
     return get_contributions_by_user(db, user_id, auth_user_id, page, limit)
 
 async def update_contribution_status(
