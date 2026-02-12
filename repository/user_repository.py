@@ -19,9 +19,15 @@ class UserRepository:
             preferred_language = preferred_language,
 
         )
-        
+
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
         return user
+    def get_user_by_id(self,user_id):
+        user = self.db.query(User).filter(User.id == user_id).first()
+
+        if not user:
+            return None
         
+        return user
