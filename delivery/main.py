@@ -6,6 +6,7 @@ from delivery.api.routers.route_router import router as route_router
 from delivery.api.routers.poi_router import router as poi_router
 from delivery.api.routers.geocode_router import router as geocode_router
 from delivery.api.routers.contribution_router import router as contribution_router
+from delivery.api.routers.user_router import router as user_router
 from domain import *
 from infrastructure.database import Base, engine
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(poi_router)
     app.include_router(geocode_router)
     app.include_router(contribution_router, prefix="/api")
+    app.include_router(user_router, prefix="/api")
 
 
     return app
