@@ -1,6 +1,9 @@
 from sqlalchemy import Column, String, Enum, Float, TIMESTAMP, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+from typing import Optional
+from pydantic import BaseModel, validator, Field
+
 import enum, uuid
 
 from infrastructure.database import Base
@@ -41,3 +44,42 @@ class User(Base):
         back_populates="user",
         uselist=False
     )
+
+class UpdateUserRequest(BaseModel):
+    full_name: Optional[str] = Field(
+        None, 
+        max_length=100, 
+        description="User's full name (max 100 characters)"
+    )
+    preferred_language: Optional[str] = Field(
+        None, 
+        description="Language preference: 'en' for English, 'am' for Amharic"
+    )
+    profile_picture_url: Optional[str] = Field(
+        None, 
+        max_length=500, 
+        description="URL to the user's profile picture"
+    )
+
+    @validator("preferred_language")
+    def validate_language(cls, v):
+        if v is not None and v not in ("en", "am"):
+            raise ValueError("preferred_language must be 'en' or 'am'")
+        return v
+
+class CreateUserRequest(BaseModel):
+    full_name: str = Field(
+        ...,
+        max_length=100,
+        description="User's full name (max 100 characters)"
+    )
+    preferred_language: Optional[str] = Field(
+        "en",
+        description="Language preference: 'en' for English, 'am' for Amharic"
+    )
+
+    @validator("preferred_language")
+    def validate_language(cls, v):
+        if v is not None and v not in ("en", "am"):
+            raise ValueError("preferred_language must be 'en' or 'am'")
+        return v
