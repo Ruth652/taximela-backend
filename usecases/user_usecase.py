@@ -17,7 +17,6 @@ def create_user_first_login(db, firebase_uid, email, payload: dict | None):
         "firebase_uid": firebase_uid,
         "email": user.email,
         "full_name": user.full_name,
-        "created_at": user.created_at,
         }
 
 
@@ -43,6 +42,17 @@ def create_user_first_login(db, firebase_uid, email, payload: dict | None):
         "firebase_uid": firebase_uid,
         "email": user.email,
         "full_name": user.full_name,
-        "created_at": user.created_at,
         
     }
+
+def get_current_user(db, firebase_uid: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        return None
+    
+    return user_repo.get_user_by_id(user_id)
+
+
