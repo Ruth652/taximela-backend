@@ -1,5 +1,7 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from delivery.api.controllers.contribution_controller import submit_contribution
 from domain.auth_identity_model import AuthIdentity
 from infrastructure.db_dependency import get_db
 from schemas.contribution_schema import ContributeSchema
@@ -15,23 +17,12 @@ router = APIRouter(
 async def create_contribution(
     contribution: ContributeSchema,
     db: Session = Depends(get_db),
-    user=Depends(verify_token)
+    user =Depends(verify_token)
 ):
-    print("Received contribution:", contribution)
-    firebase_uid = user["uid"]
+    user_id = user["uid"]
+    
 
-    identity = db.query(AuthIdentity)\
-        .filter(AuthIdentity.firebase_uid == firebase_uid)\
-        .first()
-
-    if not identity:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    user_id = identity.entity_id
-    print(f"User ID: {user_id}, Contribution: {contribution}")
-
-    repo = ContributionRepository(db)
-    db_obj = await repo.save(contribution, user_id)
+    db_obj = await submit_contribution(contribution, user_id, db)
     return {
         "id": db_obj.id,
         "message": "Contribution saved successfully"

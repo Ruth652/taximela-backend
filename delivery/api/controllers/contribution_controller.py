@@ -1,7 +1,9 @@
 
+from uuid import UUID
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from usecases.contribution_usecase import get_my_contribution_stats
+from schemas.contribution_schema import ContributeSchema
+from usecases.contribution_usecase import GetContributionStatsAdmin, get_my_contribution_stats
 from infrastructure.database import get_db
 from infrastructure.auth.firebase_auth import get_current_firebase_user
 from repository.contribution_repository import ContributionRepository
@@ -23,16 +25,13 @@ async def get_contribution_stats_controller(
     return get_my_contribution_stats(db, user_id, auth_user_id)
 
 async def submit_contribution(
-    data,
-    firebase_user: dict = Depends(get_current_firebase_user),
-    db = Depends(get_db)
+    data: ContributeSchema,
+    firebase_user: UUID = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
 ):
-    firebase_uid = firebase_user["uid"]
+    firebase_uid = str(firebase_user)    
     
-    repo = ContributionRepository(db)
-    usecase = submitContributionsUsecase(repo)
-
-    return await usecase.execute(data, firebase_uid)
+    return await submitContributionsUsecase(data, firebase_uid, db)
 
 async def get_user_contributions_controller(
     user_id:str,
@@ -76,3 +75,9 @@ async def get_contribution_admin_list(
         page=page,
         limit=limit,
         status=status,)
+async def get_all_contribution_stats(
+    db: Session,
+    user_id: str
+):
+    auth_user_id = user_id 
+    return await GetContributionStatsAdmin(db, user_id, auth_user_id)

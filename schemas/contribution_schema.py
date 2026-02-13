@@ -14,6 +14,8 @@ class ContributeSchema(BaseModel):
     target_type: Literal["route", "station"]
     target_id: Optional[str] = None
     description: DescriptionSchema
+    trust_score_at_submit: Optional[float] = None
+    
 
 class ContributionStatus(str, Enum):
     approved = "approved"
