@@ -5,7 +5,7 @@ from usecases.contribution_usecase import get_my_contribution_stats
 from infrastructure.database import get_db
 from infrastructure.auth.firebase_auth import get_current_firebase_user
 from repository.contribution_repository import ContributionRepository
-from usecases.contribution_usecase import submitContributionsUsecase, UpdateContributionStatusUsecase
+from usecases.contribution_usecase import submitContributionsUsecase, UpdateContributionStatusUsecase, get_contributions_by_user
 from sqlalchemy.orm import Session
 
 async def get_contribution_stats_controller(
@@ -33,6 +33,17 @@ async def submit_contribution(
     usecase = submitContributionsUsecase(repo)
 
     return await usecase.execute(data, firebase_uid)
+
+async def get_user_contributions_controller(
+    user_id:str,
+    page:int,
+    limit:int,
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    auth_user_id = firebase_user["uid"]
+
+    return get_contributions_by_user(db, user_id, auth_user_id, page, limit)
 
 async def update_contribution_status(
     contribution_id: int,

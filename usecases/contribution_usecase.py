@@ -13,31 +13,31 @@ def _is_valid_uuid(val: str) -> bool:
     except Exception:
         return False
 
-def get_my_contribution_stats(db, requested_user_id: str, firebase_uid: str):
-    """
-    requested_user_id may be either internal UUID or a firebase uid.
-    firebase_uid is the uid from the verified token.
-    """
-    auth_repo = AuthIdentityRepository(db)
-
-    caller_internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-    if not caller_internal_uuid:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB")
-
-    if _is_valid_uuid(requested_user_id):
-        requested_internal_uuid = requested_user_id
-    else:
-        requested_internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(requested_user_id)
-        if not requested_internal_uuid:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Requested user not found")
-
-    if requested_internal_uuid != caller_internal_uuid:
+def get_my_contribution_stats(db, requested_user_firebase_uid: str, firebase_uid: str):
+    if requested_user_firebase_uid != firebase_uid:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to access this resource")
 
+    auth_repo = AuthIdentityRepository(db)
+
+    internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not internal_uuid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB")
+
     repo = ContributionRepository(db)
-    return repo.get_contribution_stats_by_user_uuid(requested_internal_uuid)
+    return repo.get_contribution_stats_by_user_uuid(internal_uuid)
 
+def get_contributions_by_user(db,requested_user_firebase_uid: str, firebase_uid: str, page: int, limit: int):
+    if requested_user_firebase_uid != firebase_uid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not allowed to access this resource")
 
+    auth_repo = AuthIdentityRepository(db)
+
+    internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not internal_uuid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB")
+
+    repo = ContributionRepository(db)
+    return repo.get_contributions_by_user_uuid(internal_uuid, page, limit)
 
 class submitContributionsUsecase:
     def __init__(self, contribution_repo):

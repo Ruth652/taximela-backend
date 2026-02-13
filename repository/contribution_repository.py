@@ -50,7 +50,20 @@ class ContributionRepository:
             "rejected": result.rejected,
         }
 
+    def get_contributions_by_user_uuid(self, user_id, page:int, limit:int):
+        contributions = self.db.query(Contribution).filter(Contribution.user_id == user_id).order_by(Contribution.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
 
+        return [
+            {
+                "id": c.id,
+                "report_type": c.target_type,  
+                "description": c.description,
+                "status": c.status,
+                "created_at": c.created_at,
+                "updated_at":c.updated_at,
+            }
+            for c in contributions
+        ]
 
     async def save(self, contribution: Contribute):
         description_str = json.dumps(contribution.description.dict())
