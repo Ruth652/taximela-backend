@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from delivery.api.controllers.contribution_controller import get_contribution_stats_controller, get_user_contributions_controller
 
+
 router = APIRouter(prefix="/contributions", tags=["contributions"])
 
 @router.get("/stats/{user_id}")

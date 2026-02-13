@@ -8,7 +8,7 @@ from infrastructure.auth.firebase_auth import get_current_firebase_user as verif
 
 router = APIRouter(
     prefix="/contributions",
-    tags=["Contributions"]
+    tags=["contributions"]
 )
 
 @router.post("/")
@@ -36,3 +36,4 @@ async def create_contribution(
         "id": db_obj.id,
         "message": "Contribution saved successfully"
     }
+
