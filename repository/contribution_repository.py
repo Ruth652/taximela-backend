@@ -1,3 +1,4 @@
+from ast import stmt
 from unittest import result
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, select
@@ -54,6 +55,26 @@ class ContributionRepository:
             "approved": result.approved,
             "rejected": result.rejected,
         }
+    def save_contribution(self, data, user_id):
+        description_str = json.dumps(data.description.dict() if data.description else {})
+
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("User not found")
+        
+        contribution = Contribution(
+            user_id=user_id,
+            target_type=data.target_type,
+            target_id=data.target_id,
+            description=description_str,
+            status=ContributionStatusEnum.pending_review,
+            trust_score_at_submit=user.rating_score if user.rating_score else None
+        )
+        self.db.add(contribution)
+        self.db.commit()
+        self.db.refresh(contribution)
+        return contribution
+    
 
     def get_contributions_by_user_uuid(self, user_id, page:int, limit:int):
         contributions = self.db.query(Contribution).filter(Contribution.user_id == user_id).order_by(Contribution.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
@@ -69,7 +90,30 @@ class ContributionRepository:
             }
             for c in contributions
         ]
-        
+    async def get_contribution_stats_for_all_users(self):
+        result = self.db.query(
+        func.count(Contribution.id).label("total"),
+        func.coalesce(
+            func.sum(case((Contribution.status == "pending_review", 1), else_=0)), 0
+        ).label("pending"),
+        func.coalesce(
+            func.sum(case((Contribution.status == "approved", 1), else_=0)), 0
+        ).label("approved"),
+        func.coalesce(
+            func.sum(case((Contribution.status == "rejected", 1), else_=0)), 0
+        ).label("rejected"),
+    ).all()
+
+        return [
+            {
+                "total": r.total,
+                "pending": r.pending,
+                "approved": r.approved,
+                "rejected": r.rejected,
+            }
+            for r in result
+        ]
+            
     async def get_contributions_by_status(self, status: str, page: int, limit: int):
         total_count = self.db.query(func.count(Contribution.id)) \
             .filter(Contribution.status == status) \
