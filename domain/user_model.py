@@ -44,7 +44,9 @@ class User(Base):
         back_populates="user",
         uselist=False
     )
-
+    contributions = relationship("Contribution", back_populates="user")
+    admins = relationship("Admin", back_populates="user")
+    
 class UpdateUserRequest(BaseModel):
     full_name: Optional[str] = Field(
         None, 

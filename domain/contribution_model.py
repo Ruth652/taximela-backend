@@ -3,10 +3,8 @@ from sqlalchemy import Column, Integer, Text, Enum, ForeignKey, Float, DateTime,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from infrastructure.database import Base
-from sqlalchemy.ext.declarative import declarative_base
 import enum
-
-#Base = declarative_base()
+from sqlalchemy.orm import relationship
 
 class Contribution(Base):
     __tablename__ = "contributions"
@@ -30,7 +28,7 @@ class Contribution(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
-
+    user = relationship("User", back_populates="contributions")
 
 class ContributionStatusEnum(str, enum.Enum):
     pending_review = "pending_review"
@@ -39,18 +37,17 @@ class ContributionStatusEnum(str, enum.Enum):
     queued_for_gtfs = "queued_for_gtfs"
     sent_to_gtfs = "sent_to_gtfs"
     
+
+# class Contribute(Base):
+#     __tablename__ = "contributions"
+#     __table_args__ = {"extend_existing": True} 
+    
     
 
-class Contribute(Base):
-    __tablename__ = "contributions"
-    __table_args__ = {"extend_existing": True} 
-    
-    
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False)
-    target_type = Column(String, nullable=False)
-    target_id = Column(String, nullable=True)
-    description = Column(Text, nullable=False)  
-    trust_score_at_submit = Column(Float, nullable=False)
-    status = Column(Enum(ContributionStatusEnum), default=ContributionStatusEnum.pending_review, nullable=False)
+#     id = Column(Integer, primary_key=True, index=True)
+#     user_id = Column(String, nullable=False)
+#     target_type = Column(String, nullable=False)
+#     target_id = Column(String, nullable=True)
+#     description = Column(Text, nullable=False)  
+#     trust_score_at_submit = Column(Float, nullable=False)
+#     status = Column(Enum(ContributionStatusEnum), default=ContributionStatusEnum.pending_review, nullable=False)
