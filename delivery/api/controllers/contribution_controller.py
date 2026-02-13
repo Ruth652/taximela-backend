@@ -5,7 +5,7 @@ from usecases.contribution_usecase import get_my_contribution_stats
 from infrastructure.database import get_db
 from infrastructure.auth.firebase_auth import get_current_firebase_user
 from repository.contribution_repository import ContributionRepository
-from usecases.contribution_usecase import submitContributionsUsecase, UpdateContributionStatusUsecase, get_contributions_by_user
+from usecases.contribution_usecase import submitContributionsUsecase, UpdateContributionStatusUsecase, get_contributions_by_user, GetContributionAdminList
 from sqlalchemy.orm import Session
 
 async def get_contribution_stats_controller(
@@ -59,3 +59,20 @@ async def update_contribution_status(
         raise HTTPException(status_code=404, detail=str(e))
     
     return {"message": "Contribution status updated successfully", "contribution": result}
+
+async def get_contribution_admin_list(
+    user_id: str,
+    page: int,
+    limit: int,
+    status: str,
+    db: Session,
+):
+    auth_user_id = user_id 
+    
+    return await GetContributionAdminList(
+        db=db,
+        requested_user_firebase_uid=user_id,
+        firebase_uid=auth_user_id,
+        page=page,
+        limit=limit,
+        status=status,)
