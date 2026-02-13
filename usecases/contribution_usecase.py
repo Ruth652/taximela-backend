@@ -45,12 +45,16 @@ class submitContributionsUsecase:
         
     
     
-    async def execute(self, data):
+    async def execute(self, data, firebase_uid):
+        
+        internal_user_id = self.contribution_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+        
         contribution = Contribute(
-            user_id=data.user_id,
+            user_id=internal_user_id,
             target_type=data.target_type,
             description=data.description,
-            trust_score_at_submit=data.trust_score_at_submit,
+            trust_score_at_submit=internal_user_id.trust_score_at_submit,
+            status="pending"
         )
         return await self.contribution_repo.save(contribution)
 
