@@ -11,22 +11,28 @@ from sqlalchemy.orm import Session
 async def get_contribution_stats_controller(
     user_id: str,
     firebase_user: dict = Depends(get_current_firebase_user),
+    
     db: Session = Depends(get_db)
 ):
     """
     Controller to fetch user contribution stats.
     """
+    print(firebase_user)
+
     auth_user_id = firebase_user["uid"]
     return get_my_contribution_stats(db, user_id, auth_user_id)
 
 async def submit_contribution(
     data,
+    firebase_user: dict = Depends(get_current_firebase_user),
     db = Depends(get_db)
 ):
+    firebase_uid = firebase_user["uid"]
+    
     repo = ContributionRepository(db)
     usecase = submitContributionsUsecase(repo)
 
-    return await usecase.execute(data)
+    return await usecase.execute(data, firebase_uid)
 
 async def update_contribution_status(
     contribution_id: int,

@@ -4,7 +4,6 @@ from firebase_admin import auth, credentials
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# Initialize Firebase app only once
 
 FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
 if not firebase_admin._apps:
@@ -23,6 +22,7 @@ def get_current_firebase_user(
     token = credentials.credentials
     try:
         decoded_token = auth.verify_id_token(token)
+        
         return decoded_token
     except Exception:
         raise HTTPException(
