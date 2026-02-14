@@ -7,6 +7,8 @@ from delivery.api.routers.poi_router import router as poi_router
 from delivery.api.routers.geocode_router import router as geocode_router
 from delivery.api.routers.contribution_router import router as contribution_router
 from delivery.api.routers.user_router import router as user_router
+from delivery.api.routers.admin_user_router import router as admin_user_router
+
 from pydantic import ValidationError
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -65,7 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(geocode_router)
     app.include_router(contribution_router, prefix="/api")
     app.include_router(user_router, prefix="/api")
-
+    app.include_router(admin_user_router)
 
     return app
 
