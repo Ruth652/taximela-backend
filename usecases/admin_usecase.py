@@ -17,7 +17,7 @@ def verify_admin_permissions(db, firebase_uid :str):
     
     admin =db.query(Admin).filter(
         Admin.user_id == user_id,
-Admin.role.in_(["super_admin", "operational_admin"]),  # ✅ Correct
+Admin.role.in_(["super_admin", "operational_admin"]),  
 
         Admin.is_active == True
     ).first()
@@ -33,11 +33,11 @@ def list_users_for_admin(db, firebase_uid: str, page: int, limit: int , status: 
     user_repo= UserRepository(db)
     return user_repo.list_users(page,limit, status)
 
-def update_user_status_usecase(db, firebase_uid: str, user_id: int, update_data: dict):
+def update_user_status_usecase(db, firebase_uid: str, user_id: int, new_status: str):
     verify_admin_permissions(db, firebase_uid)
 
     user_repo = UserRepository(db)
-    user= user_repo.update_user_status(user_id, update_data["status"])
+    user= user_repo.update_user_status(user_id, new_status)
 
     if not user:
         raise UserNotFoundError("User not found.")
