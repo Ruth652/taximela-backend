@@ -6,3 +6,5 @@ ethiopia.osm.pbf
 graph.obj
 venv/
 otp.jar
+*firebase*.json
+taximela.db
