@@ -9,8 +9,8 @@ WORKDIR /app/otp
 
 # Download OTP 2.8.1
 RUN curl -L -o otp-2.8.1-shaded.jar \
-  https://repo1.maven.org/maven2/org/opentripplanner/otp/2.8.1/otp-2.8.1-shaded-jar-with-dependencies.jar
-
+  https://repo1.maven.org/maven2/org/opentripplanner/otp/2.8.1/otp-2.8.1-shaded.jar \
+  && echo "$(curl -s https://repo1.maven.org/maven2/org/opentripplanner/otp/2.8.1/otp-2.8.1-shaded.jar.sha1)  otp-2.8.1-shaded.jar" | sha1sum -c -
 # Copy GTFS data, OSM, and router config
 COPY data/gtfs/ /app/otp/graphs/default/gtfs/
 COPY data/router-config.json /app/otp/graphs/default/
