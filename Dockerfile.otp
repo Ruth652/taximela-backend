@@ -1,9 +1,29 @@
-FROM opentripplanner/opentripplanner:2.8.1
+# Base image with Java 17
+FROM eclipse-temurin:17-jre-jammy
 
-WORKDIR /app
+# Install curl
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-COPY data /var/otp/data
+# Set working directory
+WORKDIR /app/otp
 
+# Download OTP 2.8.1 jar
+RUN curl -L -o otp-2.8.1-shaded.jar https://repo1.maven.org/maven2/org/opentripplanner/otp/2.8.1/otp-2.8.1-shaded.jar
+
+# Copy GTFS data, OSM, and router config
+COPY data/gtfs/ /app/otp/graphs/default/gtfs/
+COPY data/router-config.json /app/otp/graphs/default/
+COPY data/addis\ ababa\ osm.pbf /app/otp/graphs/default/  
+
+# Build graph (optional if you already have graph.obj)
+# RUN java -Xmx2G -jar otp-2.8.1-shaded.jar --build /app/otp/graphs/default
+
+# Expose OTP port
 EXPOSE 8080
 
-CMD ["--load", "/var/otp/data", "--serve"]
+# Health check (optional)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
+  CMD curl -f http://localhost:8080/otp/routers/default || exit 1
+
+# Start OTP server using prebuilt graph
+CMD ["java", "-Xmx2G", "-jar", "otp-2.8.1-shaded.jar", "--load", "/app/otp/graphs/default", "--serve"]
