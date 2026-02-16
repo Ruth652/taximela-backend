@@ -13,7 +13,7 @@ RUN curl -L -o otp-2.8.1-shaded.jar https://repo1.maven.org/maven2/org/opentripp
 # Copy GTFS data, OSM, and router config
 COPY data/gtfs/ /app/otp/graphs/default/gtfs/
 COPY data/router-config.json /app/otp/graphs/default/
-COPY data/addis\ ababa\ osm.pbf /app/otp/graphs/default/  
+COPY data/addis-ababa.osm.pbf /app/otp/graphs/default/
 
 # Build graph (optional if you already have graph.obj)
 # RUN java -Xmx2G -jar otp-2.8.1-shaded.jar --build /app/otp/graphs/default
