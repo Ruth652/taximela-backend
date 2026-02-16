@@ -1,8 +1,0 @@
-route_id,route_short_name,route_long_name,route_type
-1,73,Tafo Adebabay → Megenagna Down,3
-2,101,Shola → Piassa,3
-3,212,Ethiopia Cinema → Megenagna Police Station,3
-4,92,Megenagna Inside → Tafo Adebabay End,3
-5,119,Megenagna Up → Tafo Mission,3
-6,85,Derartu Adebabay → Tafo Mission,3
-91,91,Megenagna Inside → Summit,3
