@@ -1,9 +1,9 @@
-FROM eclipse-temurin:17-jdk
+FROM opentripplanner/opentripplanner:2.8.1
 
 WORKDIR /app
 
-COPY . .
+COPY data /var/otp/data
 
 EXPOSE 8080
 
-CMD ["java", "-Xmx512m", "-jar", "otp.jar", "--load", "data", "--serve"]
+CMD ["--load", "/var/otp/data", "--serve"]
