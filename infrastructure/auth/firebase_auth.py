@@ -1,5 +1,6 @@
 import os
 import json
+import firebase_admin
 from firebase_admin import auth, credentials
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
