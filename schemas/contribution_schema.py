@@ -11,12 +11,11 @@ class DescriptionSchema(BaseModel):
     details: Optional[str] = None
 
 class ContributeSchema(BaseModel):
-    user_id: UUID
     target_type: Literal["route", "station"]
     target_id: Optional[str] = None
     description: DescriptionSchema
-    trust_score_at_submit: float
-    status: Optional[str] = "pending"
+    trust_score_at_submit: Optional[float] = None
+    
 
 class ContributionStatus(str, Enum):
     approved = "approved"

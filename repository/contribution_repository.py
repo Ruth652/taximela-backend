@@ -1,8 +1,14 @@
+from ast import stmt
+from unittest import result
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
+from sqlalchemy import func, case, select
 from domain.contribution_model import Contribution
-from domain.contribution_model import Contribute, ContributionStatusEnum
+from domain.contribution_model import ContributionStatusEnum
 import json
+from domain import User, Contribution
+
+from sqlalchemy.orm import selectinload
+
 
 
 class ContributionRepository:
@@ -49,6 +55,26 @@ class ContributionRepository:
             "approved": result.approved,
             "rejected": result.rejected,
         }
+    def save_contribution(self, data, user_id):
+        description_str = json.dumps(data.description.dict() if data.description else {})
+
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError("User not found")
+        
+        contribution = Contribution(
+            user_id=user_id,
+            target_type=data.target_type,
+            target_id=data.target_id,
+            description=description_str,
+            status=ContributionStatusEnum.pending_review,
+            trust_score_at_submit=user.rating_score if user.rating_score else None
+        )
+        self.db.add(contribution)
+        self.db.commit()
+        self.db.refresh(contribution)
+        return contribution
+    
 
     def get_contributions_by_user_uuid(self, user_id, page:int, limit:int):
         contributions = self.db.query(Contribution).filter(Contribution.user_id == user_id).order_by(Contribution.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
@@ -64,27 +90,74 @@ class ContributionRepository:
             }
             for c in contributions
         ]
+    async def get_contribution_stats_for_all_users(self):
+        result = self.db.query(
+        func.count(Contribution.id).label("total"),
+        func.coalesce(
+            func.sum(case((Contribution.status == "pending_review", 1), else_=0)), 0
+        ).label("pending"),
+        func.coalesce(
+            func.sum(case((Contribution.status == "approved", 1), else_=0)), 0
+        ).label("approved"),
+        func.coalesce(
+            func.sum(case((Contribution.status == "rejected", 1), else_=0)), 0
+        ).label("rejected"),
+    ).all()
 
-    async def save(self, contribution: Contribute):
-        description_str = json.dumps(contribution.description.dict())
+        return [
+            {
+                "total": r.total,
+                "pending": r.pending,
+                "approved": r.approved,
+                "rejected": r.rejected,
+            }
+            for r in result
+        ]
+            
+    async def get_contributions_by_status(self, status: str, page: int, limit: int):
+        total_count = self.db.query(func.count(Contribution.id)) \
+            .filter(Contribution.status == status) \
+            .scalar()
 
-        db_obj = Contribute(
-            user_id=contribution.user_id,
-            target_type=contribution.target_type,
-            target_id=contribution.target_id,
-            description=description_str,
-            trust_score_at_submit=contribution.trust_score_at_submit,
-            status=ContributionStatusEnum.pending_review 
+        stmt = (
+            select(Contribution)
+            .where(Contribution.status == status)
+            .order_by(Contribution.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .options(selectinload(Contribution.user))
         )
-        
-        self.db.add(db_obj)
-        self.db.commit()
-        self.db.refresh(db_obj)
-        
-        return db_obj
+
+        result = self.db.execute(stmt)
+        contributions = result.scalars().all()
+
+        contributions_data = [
+            {
+                "id": str(c.id),
+                "user_id": str(c.user_id),
+                "full_name": c.user.full_name if c.user else "Unknown",
+                "target_type": c.target_type,
+                "action": (json.loads(c.description).get("action") if c.description else None),
+                "name": (json.loads(c.description).get("name") if c.description else None),
+                "lat": (json.loads(c.description).get("lat") if c.description else None),
+                "lon": (json.loads(c.description).get("lon") if c.description else None),
+                "status": c.status,
+                "trust_score": c.trust_score_at_submit,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+            }
+            for c in contributions
+        ]
+
+        return {
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "contributions": contributions_data
+        }
+    
     
     async def update_status(self, contribution_id: int, status: str):
-        obj = self.db.query(Contribute).filter(Contribute.id == contribution_id).first()
+        obj = self.db.query(Contribution).filter(Contribution.id == contribution_id).first()
         
         if not obj:
             raise ValueError("Contribution not found")
