@@ -10,7 +10,6 @@ class EntityTypeEnum(str, enum.Enum):
     user = "user"
     admin = "admin"
 
-
 class AuthIdentity(Base):
     __tablename__ = "auth_identities"
 

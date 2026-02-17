@@ -1,4 +1,3 @@
-import firebase_admin
 import os
 import json
 from firebase_admin import auth, credentials
