@@ -5,5 +5,5 @@ class PlanRequest(BaseModel):
     from_lon: float
     to_lat: float
     to_lon: float
-    date: str  
-    time: str   
+    # date: str  
+    # time: str   
