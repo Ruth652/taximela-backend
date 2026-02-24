@@ -34,7 +34,7 @@ class User(Base):
 
     preferred_language = Column(String(10), default="en")
     profile_picture_url = Column(Text, nullable=True)
-    rejection_strak_count = Column(Integer, default=0)
+    rejection_streak_count = Column(Integer, default=0)
 
     deleted_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, nullable=False, server_default="now()")
