@@ -50,3 +50,34 @@ class UserRepository:
         except SQLAlchemyError:
             self.db.rollback()
             raise UserUpdateFailedError()
+
+
+    def list_users(self, page: int=1, limit: int =20, status: str=None):
+        query = self.db.query(User)
+
+
+
+        if status: 
+            query =query.filter(User.status ==status)
+        total_count= query.count()    
+        offset = (page - 1) * limit
+        users = query.offset(offset).limit(limit).all()
+
+        return {
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "users": users
+        }
+
+    def update_user_status(self,user_id, new_status: str):
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+        user.status = new_status
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+            
+
+       
