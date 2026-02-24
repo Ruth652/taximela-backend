@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 from domain.user_model import User
 from sqlalchemy.exc import SQLAlchemyError
 
-from usecases.user_usecase import UserNotFoundError
 
 
 class UserRepository:
@@ -36,6 +35,8 @@ class UserRepository:
         
         return user
     def update_user_profile(self, user_id, update_data):
+        from usecases.user_usecase import UserNotFoundError
+        
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
             raise UserNotFoundError()
