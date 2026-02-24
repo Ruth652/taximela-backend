@@ -2,7 +2,6 @@
 from uuid import UUID
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from repository.user_repository import UserRepository
 from schemas.contribution_schema import ContributeSchema
 from usecases.contribution_usecase import GetContributionStatsAdmin, GetPreviousContributionStatus, get_my_contribution_stats
 from infrastructure.database import get_db
@@ -61,14 +60,6 @@ async def get_user_contributions_controller(
     
 #     return {"message": "Contribution status updated successfully", "contribution": result}
 
-async def update_user_rating_score(user_id: str, score_change: str, db: Session):
-    
-    repo = UserRepository(db)
-    usecase = GetPreviousContributionStatus(repo)
-    
-         
-    
-    return await repo.update_user_reputation_score(user_id, score_change)
 
 async def get_contribution_admin_list(
     user_id: str,
