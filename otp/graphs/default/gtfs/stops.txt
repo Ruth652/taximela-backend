@@ -1,0 +1,26 @@
+stop_id,stop_name,stop_lat,stop_lon
+1,Tafo Adebabay,9.057188,38.878122
+2,Derartu Adebabay,9.021398,38.871342
+3,CMC Compound (Across),9.021229,38.850449
+4,Gurd Shola (Athletoch),9.019413,38.824061
+5,Megenagna Down,9.020169,38.804169
+6,Shola,9.025192,38.796031
+7,UK Embassy,9.029995,38.787304
+8,Kebena,9.033981,38.776317
+9,4 Kilo,9.034263,38.760698
+10,Piassa,9.032558,38.753162
+11,Ethiopia Cinema (Piassa),9.031064,38.754967
+12,4 Kilo (To Megenagna),9.032159,38.764788	
+13,Kebena(To Megenagna),9.034656,38.778908	
+14,UK Embassy (To Megenagna),9.02969,38.787075	
+15,Megenagna Police Station,9.022837,38.798615
+16,Megenagna (Inside),9.0202927,38.8017239
+17,Century Mall,9.019625,38.813126
+18,CMC Compound,9.020739,38.850467
+19,Ayat (Train Stop),9.021024,38.872576
+20,Tafo Adebabay (End),9.055699,38.878368
+21,Megenagna Up,9.020412,38.804285
+22,Menaheria,9.024013,38.820596
+23,Abem,9.035417,38.852695
+24,Tafo Aba Kiros,9.060659,38.881275
+25,Tafo Mission,9.07884,38.904154
