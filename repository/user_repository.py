@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from domain.user_model import User
 from sqlalchemy.exc import SQLAlchemyError
 
+from usecases.user_usecase import UserNotFoundError
+
 
 class UserRepository:
     def __init__(self, db: Session):
