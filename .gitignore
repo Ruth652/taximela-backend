@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 ethiopia.osm.pbf
-graph.obj
+
 venv/
 otp.jar
 *firebase*.json

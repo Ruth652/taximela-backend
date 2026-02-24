@@ -1,7 +1,8 @@
 
-from domain.contribution_model import Contribution
+from domain.contribution_model import Contribution, ContributionStatusEnum
 from repository.auth_identity_repository import AuthIdentityRepository
 from repository.contribution_repository import ContributionRepository
+from repository.user_repository import UserRepository
 from fastapi import HTTPException, status
 
 # from domain.contribution_model import Contribute
@@ -83,11 +84,68 @@ async def submitContributionsUsecase(data: ContributeSchema, firebase_uid,db):
     
     repo = ContributionRepository(db)
     return repo.save_contribution(data, internal_uuid)
-    
-   
-class UpdateContributionStatusUsecase:
-    def __init__(self, repo):
-        self.repo = repo 
 
-    async def execute(self, contribution_id: str, status: str):
-        return await self.repo.update_status(contribution_id, status)
+
+async def GetPreviousContributionStatus(user_id, db):
+    auth_repo = AuthIdentityRepository(db)
+    internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(user_id)    
+    if not internal_uuid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB 2")
+    
+    repo = UserRepository(db)
+    return repo.get_user_previous_contribution_status(internal_uuid)
+  
+
+async def UpdateContributionStatusUsecase(contribution_id: str, new_status: str, db):
+
+    contribution_repo = ContributionRepository(db)
+    user_repo = UserRepository(db)
+    
+    
+    contribution = contribution_repo.get_contribution_by_id(contribution_id)
+    user = user_repo.get_user_by_id(contribution.user_id)
+
+    if not contribution:
+        raise ValueError("Contribution not found")
+
+    contribution.status = ContributionStatusEnum(new_status)
+    
+    if new_status == "approved":
+        user.rating_score += 15
+        user.rejection_streak_count = 0
+
+    elif new_status == "rejected":
+        if user.rejection_streak_count == 0:
+            user.rating_score -= 15
+        else:
+            user.rating_score -= 5
+        user.rejection_streak_count += 1
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid status"
+        )
+
+    user.reputational_tier = calulate_reputational_tier(user.rating_score)
+
+    db.commit()
+    db.refresh(contribution)
+    db.refresh(user)
+
+    return {
+        "message": "Contribution status updated successfully",
+        "contribution": contribution,
+        "contribution_status": contribution.status.value,
+        "new_score": user.rating_score,
+        "new_tier": user.reputational_tier
+    }
+
+def calulate_reputational_tier(score):
+        if score < 0:
+            return "Flagged"
+        elif score < 50:
+            return "Silver"
+        elif score < 200:
+            return "Gold"
+        else:
+            return "Platinum" 
