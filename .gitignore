@@ -1,3 +1,16 @@
 ethiopia.osm.pbf
 venv/
 otp.jar
+
+# FastAPI backend files (not part of OTP deployment)
+delivery/
+domain/
+infrastructure/
+repository/
+schemas/
+usecases/
+.env
+get_firebase_token.py
+taximela.db
+taximelafinal-db-firebase.json
+$null
