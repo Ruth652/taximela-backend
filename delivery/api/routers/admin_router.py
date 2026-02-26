@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends, Path
 from sqlalchemy.orm import Session
 from infrastructure.db_dependency import get_db
-from delivery.api.controllers.contribution_controller import get_all_contribution_stats, get_contribution_admin_list, update_contribution_status, update_user_reputation_score
-from repository.contribution_repository import ContributionRepository
-from repository.user_repository import UserRepository
+from delivery.api.controllers.contribution_controller import get_all_contribution_stats, get_contribution_admin_list
 from schemas.contribution_schema import ContributionUpdateSchema
 from infrastructure.auth.firebase_auth import get_current_firebase_user as verify_token
 from usecases.contribution_usecase import UpdateContributionStatusUsecase
