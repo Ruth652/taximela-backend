@@ -172,7 +172,7 @@ class ContributionRepository:
         obj = self.db.query(Contribution).filter(Contribution.id == contribution_id).first()
         
         if not obj:
-            raise ValueError("Contribution not found")
+            raise None
         
         obj.status = ContributionStatusEnum(status)
         
