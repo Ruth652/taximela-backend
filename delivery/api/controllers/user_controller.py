@@ -25,15 +25,17 @@ async def create_admin_controller(
     db: Session = Depends(get_db)
 ):
     auth_user_id = firebase_user["uid"]
-    email = firebase_user["email"]
-    entity_type = "admin"
+    
     return create_admin_first_login(
         db=db,
-        firebase_uid=auth_user_id,
-        email=email,
-        payload=payload.dict(),
-        entity_type=entity_type
+        creator_firebase_uid=auth_user_id,
+        new_user_email=payload.email,
+        payload=payload.dict() if payload else None,
+        role=payload.role if payload else None,
+        new_user_firebase_uid=payload.firebase_uid if payload and hasattr(payload, "firebase_uid") else None
+        
     )
+   
 async def get_current_user_controller(
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
