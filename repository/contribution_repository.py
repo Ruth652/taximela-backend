@@ -14,7 +14,19 @@ from sqlalchemy.orm import selectinload
 class ContributionRepository:
     def __init__(self, db: Session):
         self.db = db
+        
+    def get_contribution_by_id(self, contribution_id):
+        return self.db.query(Contribution).filter(Contribution.id == contribution_id).first()
 
+    def get_last_user_contribution(self, user_id, exclude_id=int):
+        return (
+        self.db.query(Contribution)
+        .filter(Contribution.user_id == user_id)
+        .filter(Contribution.id != exclude_id)
+        .filter(Contribution.status.in_(["approved", "rejected"]))
+        .order_by(Contribution.created_at.desc())
+        .first()
+    )
     def get_contribution_stats_by_user_uuid(self, user_id):
         result = self.db.query(
             func.count(Contribution.id).label("total"),
@@ -160,11 +172,13 @@ class ContributionRepository:
         obj = self.db.query(Contribution).filter(Contribution.id == contribution_id).first()
         
         if not obj:
-            raise ValueError("Contribution not found")
+            raise None
         
         obj.status = ContributionStatusEnum(status)
         
-        self.db.commit()    
+        self.db.flush()
         self.db.refresh(obj)
         return obj
+    
+   
 

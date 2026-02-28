@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum, Float, TIMESTAMP, Text
+from sqlalchemy import Column, Integer, String, Enum, Float, TIMESTAMP, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from typing import Optional
@@ -34,6 +34,7 @@ class User(Base):
 
     preferred_language = Column(String(10), default="en")
     profile_picture_url = Column(Text, nullable=True)
+    rejection_streak_count = Column(Integer, default=0)
 
     deleted_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, nullable=False, server_default="now()")

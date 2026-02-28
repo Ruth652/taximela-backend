@@ -1,6 +1,7 @@
 import os
 import firebase_admin
 import json
+import firebase_admin
 from firebase_admin import auth, credentials
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -30,10 +31,6 @@ def get_current_firebase_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
-
-
-
-
 
 # import firebase_admin
 # import os
@@ -66,3 +63,4 @@ def get_current_firebase_user(
 #             status_code=status.HTTP_401_UNAUTHORIZED,
 #             detail="Invalid or expired token"
 #         )
+

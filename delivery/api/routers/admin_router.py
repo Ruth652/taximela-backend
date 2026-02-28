@@ -1,25 +1,36 @@
 from fastapi import APIRouter, Depends, Path
 from sqlalchemy.orm import Session
 from infrastructure.db_dependency import get_db
-from delivery.api.controllers.contribution_controller import get_all_contribution_stats, get_contribution_admin_list, update_contribution_status
+from delivery.api.controllers.contribution_controller import get_all_contribution_stats, get_contribution_admin_list, update_contribution_status_controller
 from schemas.contribution_schema import ContributionUpdateSchema
 from infrastructure.auth.firebase_auth import get_current_firebase_user as verify_token
+from usecases.contribution_usecase import UpdateContributionStatusUsecase
 
 
 router = APIRouter(
-    prefix="/api/admin/contributions",
+    prefix="/api/admin",
     tags=["Admin"]
 )
 
-@router.put("/{id}")
+@router.patch("/contributions/{id}")
 async def approve_reject_contribution(
     id: str = Path(..., description="Contribution ID"),
     data: ContributionUpdateSchema = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user:dict = Depends(verify_token)
 ):
-    return await update_contribution_status(id, data, db)
+    try:
+        result = await update_contribution_status_controller(
+            user_id=user['uid'], 
+            contribution_id=id, 
+            new_status=data.status, 
+            db=db
+            )
+        return result
+    except ValueError as e:
+        return {"error": str(e)}
 
-@router.get("/list")
+@router.get("/contributions/list")
 async def get_contribution_admin(
     page: int = 1,
     limit: int = 10,
@@ -31,9 +42,16 @@ async def get_contribution_admin(
         user_id = user["uid"], 
         page=page, limit=limit, status=status, db=db)
 
-@router.get("/stats")
+@router.get("/contributions/stats")
 async def get_contribution_stats(
     db: Session = Depends(get_db),
     user=Depends(verify_token),
 ):
     return await get_all_contribution_stats(db, user["uid"])
+
+# @router.post("/admins")
+# async def add_admin(
+#     email: str,
+#     db: Session = Depends(get_db),
+#     user=Depends(verify_token),
+# ):

@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from schemas.contribution_schema import ContributeSchema
-from usecases.contribution_usecase import GetContributionStatsAdmin, get_my_contribution_stats
+from usecases.contribution_usecase import GetContributionStatsAdmin, GetPreviousContributionStatus, get_my_contribution_stats
 from infrastructure.database import get_db
 from infrastructure.auth.firebase_auth import get_current_firebase_user
 from repository.contribution_repository import ContributionRepository
@@ -44,20 +44,18 @@ async def get_user_contributions_controller(
     auth_user_id = firebase_user["uid"]
     return get_contributions_by_user(db, user_id, auth_user_id, page, limit)
 
-async def update_contribution_status(
-    contribution_id: int,
-    data,
-    db: Session = Depends(get_db)
+async def update_contribution_status_controller(
+    user_id: str,
+    contribution_id: str,
+    new_status: str,
+    db: Session 
 ):
-    repo = ContributionRepository(db)
-    usecase = UpdateContributionStatusUsecase(repo)
-    
-    try:
-        result = await usecase.execute(contribution_id, data.status)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    
-    return {"message": "Contribution status updated successfully", "contribution": result}
+    return await UpdateContributionStatusUsecase(
+        user_id=user_id, 
+        contribution_id=contribution_id, 
+        new_status=new_status, 
+        db=db
+        )
 
 async def get_contribution_admin_list(
     user_id: str,

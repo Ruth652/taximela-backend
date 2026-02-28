@@ -9,7 +9,7 @@ async def get_trip_plan(data):
         data.to_lat,
         data.to_lon
     )
-    print("result:", result)
+    # print("result:", result)
 
     if "data" not in result:
         raise HTTPException(

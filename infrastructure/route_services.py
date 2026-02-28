@@ -2,11 +2,8 @@
 import httpx
 import os
 
-#OTP_URL = "http://localhost:8080/otp/gtfs/v1"
-OTP_URL = "https://taximela-backend-1.onrender.com/otp/gtfs/v1"
 
-
-# OTP_URL = os.getenv("OTP_BASE_URL")
+OTP_URL = os.getenv("OTP_BASE_URL")
 
 # async def fetch_route_from_otp(from_lat, from_lon, to_lat, to_lon, time = "06:00:00"):
 #     query = {
