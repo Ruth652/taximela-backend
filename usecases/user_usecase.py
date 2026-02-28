@@ -4,19 +4,20 @@ from repository.auth_identity_repository import AuthIdentityRepository
 
 class UserNotFoundError(Exception): pass
 class NoUpdateFieldsError(Exception): pass
+class PermissionDeniedError(Exception): pass
 
-def create_user_first_login(db, firebase_uid: str, email: str, payload: dict | None = None, *,
-                            entity_type: str = "user"):
-    """
-    Creates or links a user at first login.
-    - default entity_type is "user" so you can reuse this for normal users.
-    - to create/link an admin identity, call with entity_type="admin" from a privileged flow only.
-    """
 
+def create_user_first_login(
+    db,
+    firebase_uid: str,
+    email: str,
+    payload: dict | None = None,
+    *,
+    entity_type: str = "user"
+):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
-    # 0) Check auth_identity
     existing_user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
     if existing_user_id:
         user = user_repo.get_user_by_id(existing_user_id)
@@ -26,11 +27,11 @@ def create_user_first_login(db, firebase_uid: str, email: str, payload: dict | N
             "email": user.email,
             "full_name": user.full_name,
         }
+
     payload = payload or {}
 
     try:
-        with db.begin():  
-            # check the user table 
+        with db.begin():
             user = user_repo.get_user_by_email(email)
 
             if not user:
@@ -38,43 +39,33 @@ def create_user_first_login(db, firebase_uid: str, email: str, payload: dict | N
                     email=email,
                     full_name=payload.get("full_name"),
                     preferred_language=payload.get("preferred_language", "en"),
-                    # set other server-side defaults here (status, created_by, etc.)
                 )
-                db.flush()  
+                db.flush()
 
-            existing_user_id_after = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-            if existing_user_id_after:
-                # another request linked it while we were creating the user;
-                # prefer the existing link (avoid duplicate auth_identity)
-                user = user_repo.get_user_by_id(existing_user_id_after)
-            else:
-                # create the bridge row that links firebase -> our user
+            existing_after = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+            if not existing_after:
                 auth_repo.create_auth_identity(
                     firebase_uid=firebase_uid,
                     entity_id=user.id,
                     entity_type=entity_type
                 )
-            # Transaction commits here if no exception
 
     except IntegrityError:
         db.rollback()
         user = user_repo.get_user_by_email(email)
         if not user:
             raise
-        existing_user_id_after = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-        if not existing_user_id_after:
-            # best-effort: try to create link (may still fail if another raced)
-            try:
-                with db.begin():
-                    auth_repo.create_auth_identity(
-                        firebase_uid=firebase_uid,
-                        entity_id=user.id,
-                        entity_type=entity_type
-                    )
-            except Exception:
-                raise
+        existing_after = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+        if not existing_after:
+            with db.begin():
+                auth_repo.create_auth_identity(
+                    firebase_uid=firebase_uid,
+                    entity_id=user.id,
+                    entity_type=entity_type
+                )
 
     user = user_repo.get_user_by_id(user.id)
+
     return {
         "id": user.id,
         "firebase_uid": firebase_uid,
@@ -82,6 +73,69 @@ def create_user_first_login(db, firebase_uid: str, email: str, payload: dict | N
         "full_name": user.full_name,
     }
 
+
+def create_admin_by_creator(
+    db,
+    creator_firebase_uid: str,
+    new_user_email: str,
+    payload: dict | None = None,
+    *,
+    role: str | None = None,
+    new_user_firebase_uid: str | None = None
+):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    creator_user_id = auth_repo.get_user_uuid_by_firebase_uid(creator_firebase_uid)
+    if not creator_user_id:
+        raise UserNotFoundError()
+
+    if not user_repo.is_admin(creator_user_id):
+        raise PermissionDeniedError()
+
+    payload = payload or {}
+
+    try:
+        with db.begin():
+            user = user_repo.get_user_by_email(new_user_email)
+
+            if not user:
+                user = user_repo.create_user(
+                    email=new_user_email,
+                    full_name=payload.get("full_name"),
+                    preferred_language=payload.get("preferred_language", "en"),
+                )
+                db.flush()
+
+            if new_user_firebase_uid:
+                existing_link = auth_repo.get_user_uuid_by_firebase_uid(new_user_firebase_uid)
+                if not existing_link:
+                    auth_repo.create_auth_identity(
+                        firebase_uid=new_user_firebase_uid,
+                        entity_id=user.id,
+                        entity_type="admin" if role else "user"
+                    )
+
+            if role:
+                user_repo.promote_to_admin(
+                    user.id,
+                    role=role,
+                    created_by=creator_user_id
+                )
+
+    except IntegrityError:
+        db.rollback()
+        user = user_repo.get_user_by_email(new_user_email)
+        if not user:
+            raise
+
+    user = user_repo.get_user_by_id(user.id)
+
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+    }
 
 def get_current_user(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)

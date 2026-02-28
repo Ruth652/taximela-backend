@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from infrastructure.database import get_db
 from domain.user_model import UpdateUserRequest, CreateUserRequest
 from infrastructure.auth.firebase_auth import get_current_firebase_user
-from usecases.user_usecase import create_user_first_login, get_current_user, UserNotFoundError, NoUpdateFieldsError, update_current_user
+from usecases.user_usecase import create_admin_first_login, create_user_first_login, get_current_user, UserNotFoundError, NoUpdateFieldsError, update_current_user
 
 
 async def create_user_controller(
@@ -18,6 +18,21 @@ async def create_user_controller(
         firebase_uid=auth_user_id,
         email=email,
         payload=payload.dict()
+    )
+async def create_admin_controller(
+    payload:CreateUserRequest | None,
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    auth_user_id = firebase_user["uid"]
+    email = firebase_user["email"]
+    entity_type = "admin"
+    return create_admin_first_login(
+        db=db,
+        firebase_uid=auth_user_id,
+        email=email,
+        payload=payload.dict(),
+        entity_type=entity_type
     )
 async def get_current_user_controller(
     firebase_user: dict = Depends(get_current_firebase_user),

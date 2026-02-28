@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from domain.admin_model import Admin
 from domain.user_model import User
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -79,6 +80,19 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(user)
         return user
+    
+    def promote_to_admin(self, user_id, role: str, created_by: str):
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+        admin = Admin(
+            user_id=user_id,
+            role=role,
+            created_by=created_by,
+            is_active=True 
+            )
             
 
-       
+        self.db.add(admin)
+     
+        return admin
