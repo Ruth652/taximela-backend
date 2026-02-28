@@ -1,5 +1,5 @@
 
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 
 from domain.contribution_model import Contribution, ContributionStatusEnum
 from repository.auth_identity_repository import AuthIdentityRepository
