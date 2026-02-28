@@ -14,13 +14,16 @@ class AuthIdentityRepository:
         record = self.db.query(AuthIdentity).filter(AuthIdentity.firebase_uid == firebase_uid).first()
         return record.entity_id if record else None
 
-    def create_auth_identity(self, firebase_uid, entity_id):
+    def create_auth_identity(self, firebase_uid, entity_id, entity_type="user"):
         record = AuthIdentity(
             firebase_uid=firebase_uid,
-            entity_id=entity_id
+            entity_id=entity_id,
+            entity_type=entity_type
         )
         self.db.add(record)
-        self.db.commit()
+        self.db.flush()
+        return record 
+    
     def get_admin_uuids(self, firebase_uids: list[str] = None):
         query = self.db.query(AuthIdentity.entity_id).filter(AuthIdentity.entity_type == "admin")
         if firebase_uids:
@@ -28,7 +31,7 @@ class AuthIdentityRepository:
         return set(record.entity_id for record in query.all())
 
 
-    def get_operational_admin_uuids(self, firebase_uids: list[str] = None):
+    def get_super_admin_operational_admin_uuids(self, firebase_uids: list[str] = None):
         admins = self.get_admin_uuids(firebase_uids)
         
         if not admins:
