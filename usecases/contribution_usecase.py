@@ -145,8 +145,6 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, ne
     db.commit()
     db.refresh(contribution)
     db.refresh(user)
-    contribution_repo.update_status(contribution_id=contribution_id, new_status=contribution.status)
-    
 
     return {
         "message": "Contribution status updated successfully",
