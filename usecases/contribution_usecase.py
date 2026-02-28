@@ -151,7 +151,6 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, ne
     return {
         "message": "Contribution status updated successfully",
         "contribution": contribution,
-        "contribution_status": contribution.status.value,
         "new_score": user.rating_score,
         "new_tier": user.reputational_tier
     }
