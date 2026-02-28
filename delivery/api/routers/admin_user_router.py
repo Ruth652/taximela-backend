@@ -1,4 +1,9 @@
 from fastapi import APIRouter, Depends, Path
+from delivery.api.controllers.user_controller import create_admin_controller, create_user_controller
+from infrastructure.db_dependency import get_db
+from sqlalchemy.orm import Session
+from infrastructure.auth.firebase_auth import get_current_firebase_user as verify_token
+
 from delivery.api.controllers.admin_controllers import (
     list_users_controller,
     update_user_status_controller
@@ -19,3 +24,12 @@ async def update_user_status(
     data=Depends(update_user_status_controller)
 ):
     return data
+
+@router.post("/admins")
+async def create_admin(
+    _: dict = Depends(verify_token),
+    data=Depends(create_admin_controller)
+):
+    return data
+
+

@@ -30,6 +30,19 @@ class AuthIdentityRepository:
             query = query.filter(AuthIdentity.firebase_uid.in_(firebase_uids))
         return set(record.entity_id for record in query.all())
 
+    def get_super_admin_uuid_by_firebase_uid(self, firebase_uids: list[str] = None):
+        admins = self.get_admin_uuids(firebase_uids)
+        
+        if not admins:
+            return set()
+        
+        if admins:
+            query = self.db.query(Admin.user_id).filter(
+                Admin.user_id.in_(admins),
+                Admin.role.in_(["super_admin"])
+            )
+            return set(record.user_id for record in query.all())
+           
 
     def get_super_admin_operational_admin_uuids(self, firebase_uids: list[str] = None):
         admins = self.get_admin_uuids(firebase_uids)

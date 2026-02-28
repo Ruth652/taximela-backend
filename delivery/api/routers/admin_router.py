@@ -49,9 +49,3 @@ async def get_contribution_stats(
 ):
     return await get_all_contribution_stats(db, user["uid"])
 
-# @router.post("/admins")
-# async def add_admin(
-#     email: str,
-#     db: Session = Depends(get_db),
-#     user=Depends(verify_token),
-# ):
