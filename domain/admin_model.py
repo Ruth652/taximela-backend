@@ -1,4 +1,5 @@
 
+from pydantic import BaseModel
 from sqlalchemy import Column, Integer, Boolean, Enum, ForeignKey, Float, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
@@ -23,3 +24,12 @@ class Admin(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="admins")
+    
+
+class CreateAdminRequest(BaseModel):
+    email: str
+    role: str
+    firebase_uid: str | None = None
+    
+    
+    

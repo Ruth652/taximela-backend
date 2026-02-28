@@ -1,5 +1,6 @@
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
+from domain.admin_model import CreateAdminRequest
 from infrastructure.database import get_db
 from domain.user_model import UpdateUserRequest, CreateUserRequest
 from infrastructure.auth.firebase_auth import get_current_firebase_user
@@ -20,7 +21,7 @@ async def create_user_controller(
         payload=payload.dict()
     )
 async def create_admin_controller(
-    payload:CreateUserRequest | None,
+    payload:CreateAdminRequest | None,
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
