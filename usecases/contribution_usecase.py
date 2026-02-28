@@ -1,5 +1,5 @@
 
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 
 from domain.contribution_model import Contribution, ContributionStatusEnum
 from repository.auth_identity_repository import AuthIdentityRepository
@@ -98,7 +98,7 @@ async def GetPreviousContributionStatus(user_id, db):
     return repo.get_user_previous_contribution_status(internal_uuid)
   
 
-async def UpdateContributionStatusUsecase(user_id: str, contribution_id: str, new_status: str, db:Session):
+async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, new_status: str, db:Session):
 
     contribution_repo = ContributionRepository(db)
     user_repo = UserRepository(db)
@@ -145,7 +145,8 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: str, ne
     db.commit()
     db.refresh(contribution)
     db.refresh(user)
-    contribution_repo.log_contribution_status_change(contribution)
+    contribution_repo.update_status(contribution_id=contribution_id, new_status=contribution.status)
+    
 
     return {
         "message": "Contribution status updated successfully",
