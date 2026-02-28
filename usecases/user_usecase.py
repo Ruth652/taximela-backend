@@ -74,7 +74,7 @@ def create_user_first_login(
     }
 
 
-def create_admin_by_creator(
+def create_admin_first_login(
     db,
     creator_firebase_uid: str,
     new_user_email: str,
@@ -90,7 +90,7 @@ def create_admin_by_creator(
     if not creator_user_id:
         raise UserNotFoundError()
 
-    if not user_repo.is_admin(creator_user_id):
+    if not user_repo.get_super_admin_uuid_by_firebase_uid([creator_user_id]):
         raise PermissionDeniedError()
 
     payload = payload or {}
