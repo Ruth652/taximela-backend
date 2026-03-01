@@ -36,8 +36,8 @@ def create_user_first_login(
 
     try:
         with db.begin_nested():
-
             # 2️ Check if user exists by email
+
             user = user_repo.get_user_by_email(email)
 
             # 3️ If user does not exist → create user
