@@ -15,12 +15,18 @@ def create_user_first_login(
     *,
     entity_type: str = "user"
 ):
+
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
+    payload = payload or {}
+
+    # 1 Check Firebase identity first 
     existing_user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+
     if existing_user_id:
         user = user_repo.get_user_by_id(existing_user_id)
+
         return {
             "id": user.id,
             "firebase_uid": firebase_uid,
@@ -28,41 +34,35 @@ def create_user_first_login(
             "full_name": user.full_name,
         }
 
-    payload = payload or {}
-
     try:
-        with db.begin():
+        with db.begin_nested():
+
+            # 2️ Check if user exists by email
             user = user_repo.get_user_by_email(email)
 
+            # 3️ If user does not exist → create user
             if not user:
                 user = user_repo.create_user(
                     email=email,
                     full_name=payload.get("full_name"),
                     preferred_language=payload.get("preferred_language", "en"),
+                    is_commuter=payload.get("is_commuter", False),
+                    is_business_owner=payload.get("is_business_owner", False)
                 )
                 db.flush()
 
-            existing_after = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-            if not existing_after:
-                auth_repo.create_auth_identity(
-                    firebase_uid=firebase_uid,
-                    entity_id=user.id,
-                    entity_type=entity_type
-                )
+            # 4️ Create auth identity mapping
+            auth_repo.create_auth_identity(
+                firebase_uid=firebase_uid,
+                entity_id=user.id,
+                entity_type=entity_type
+            )
 
-    except IntegrityError:
+            db.flush()
+
+    except Exception:
         db.rollback()
-        user = user_repo.get_user_by_email(email)
-        if not user:
-            raise
-        existing_after = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-        if not existing_after:
-            with db.begin():
-                auth_repo.create_auth_identity(
-                    firebase_uid=firebase_uid,
-                    entity_id=user.id,
-                    entity_type=entity_type
-                )
+        raise
 
     user = user_repo.get_user_by_id(user.id)
 
@@ -72,7 +72,6 @@ def create_user_first_login(
         "email": user.email,
         "full_name": user.full_name,
     }
-
 
 def create_admin_first_login(
     db,

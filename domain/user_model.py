@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, Enum, Float, TIMESTAMP, Text
+from sqlalchemy import Column, Integer, String, Enum, Float, TIMESTAMP, Text, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from typing import Optional
 from pydantic import BaseModel, validator, Field
+from sqlalchemy.sql import text
 
 import enum, uuid
 
@@ -36,9 +37,12 @@ class User(Base):
     profile_picture_url = Column(Text, nullable=True)
     rejection_streak_count = Column(Integer, default=0)
 
+    is_commuter = Column(Boolean, nullable=False, default=False)
+    is_business_owner = Column(Boolean, nullable=False, default=False)
+
     deleted_at = Column(TIMESTAMP, nullable=True)
-    created_at = Column(TIMESTAMP, nullable=False, server_default="now()")
-    updated_at = Column(TIMESTAMP, nullable=False, server_default="now()")
+    created_at = Column(TIMESTAMP, server_default=text("now()"))
+    updated_at = Column(TIMESTAMP, server_default=text("now()"))
 
     auth_identity = relationship(
         "AuthIdentity",
@@ -47,6 +51,16 @@ class User(Base):
     )
     contributions = relationship("Contribution", back_populates="user")
     admins = relationship("Admin", back_populates="user")
+
+    business_registrations = relationship(
+        "BusinessRegistration",
+        back_populates="user"
+    )
+
+    businesses = relationship(
+        "Business",
+        back_populates="owner"
+    )
     
 class UpdateUserRequest(BaseModel):
     full_name: Optional[str] = Field(
@@ -80,6 +94,17 @@ class CreateUserRequest(BaseModel):
         "en",
         description="Language preference: 'en' for English, 'am' for Amharic"
     )
+
+    is_commuter: Optional[bool] = Field(
+        False,
+        description="Indicates whether the user is a commuter"
+    )
+
+    is_business_owner: Optional[bool] = Field(
+        False,
+        description="Indicates whether the user is a business owner"
+    )
+
 
     @validator("preferred_language")
     def validate_language(cls, v):

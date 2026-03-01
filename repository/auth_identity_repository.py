@@ -21,7 +21,7 @@ class AuthIdentityRepository:
             entity_type=entity_type
         )
         self.db.add(record)
-        self.db.flush()
+        self.db.commit()
         return record 
     
     def get_admin_uuids(self, firebase_uids: list[str] = None):

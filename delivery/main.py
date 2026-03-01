@@ -16,7 +16,7 @@ from delivery.api.routers.admin_router import router as admin_router
 from delivery.api.routers.admin_user_router import router as admin_user_router
 
 from infrastructure.database import Base, engine
-
+import domain
 
 def create_app() -> FastAPI:
     app = FastAPI(

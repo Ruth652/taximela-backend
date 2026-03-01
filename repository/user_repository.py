@@ -16,17 +16,19 @@ class UserRepository:
     def get_user_by_email(self, email: str):
         return self.db.query(User).filter(User.email == email).first()
 
-    def create_user(self, email, full_name=None, preferred_language="en"):
+    def create_user(self, email, full_name=None, preferred_language="en",is_commuter=False, is_business_owner=False):
         user = User(
             email= email,
             full_name = full_name,
             preferred_language = preferred_language,
+            is_commuter=is_commuter,
+            is_business_owner=is_business_owner,
+            rating_score = 10
 
         )
 
         self.db.add(user)
         self.db.commit()
-        self.db.refresh(user)
         return user
     def get_user_by_id(self,user_id):
         user = self.db.query(User).filter(User.id == user_id).first()
