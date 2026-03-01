@@ -31,7 +31,7 @@ def create_user_first_login(
     payload = payload or {}
 
     try:
-        with db.begin():
+        with db.begin_nested():
             user = user_repo.get_user_by_email(email)
 
             if not user:
@@ -39,6 +39,8 @@ def create_user_first_login(
                     email=email,
                     full_name=payload.get("full_name"),
                     preferred_language=payload.get("preferred_language", "en"),
+                    is_commuter=payload.get("is_commuter", False),
+                    is_business_owner=payload.get("is_business_owner", False)
                 )
                 db.flush()
 
