@@ -1,16 +1,21 @@
 
+from datetime import datetime
+import uuid
+
 from pydantic import BaseModel
 from sqlalchemy import Column, Integer, Boolean, Enum, ForeignKey, Float, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from infrastructure.database import Base
 from sqlalchemy.orm import relationship
+from uuid import UUID as PyUUID
+from sqlalchemy.dialects.postgresql import UUID
 
 class Admin(Base):
     __tablename__ = "admins"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+
     role = Column(
         Enum(
             "operational_admin",
@@ -25,11 +30,20 @@ class Admin(Base):
 
     user = relationship("User", back_populates="admins")
     
+    
+    
 
 class CreateAdminRequest(BaseModel):
-    email: str
+    user_id: PyUUID
     role: str
     firebase_uid: str | None = None
     
+    
+class UpdateAdminRequest(BaseModel):
+    role: str | None = None
+    is_active: bool | None = None
+    full_name: str | None = None  # from the user model
+    profile_picture_url: str | None = None # from the user model
+    updated_at: datetime | None = None # from the user model
     
     

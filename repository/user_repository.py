@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from domain.admin_model import Admin
 from domain.user_model import User
@@ -35,7 +37,8 @@ class UserRepository:
             return None
         
         return user
-    def update_user_profile(self, user_id, update_data):
+    
+    def update_user_profile(self, user_id, update_data: dict):
         from usecases.user_usecase import UserNotFoundError
         
         user = self.db.query(User).filter(User.id == user_id).first()
@@ -51,7 +54,7 @@ class UserRepository:
             return user
         except SQLAlchemyError:
             self.db.rollback()
-            raise UserUpdateFailedError()
+            raise 
 
 
     def list_users(self, page: int=1, limit: int =20, status: str=None):
@@ -96,3 +99,13 @@ class UserRepository:
         self.db.add(admin)
      
         return admin
+    
+    def delete_user(self, user_id):
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+        user.status = "suspended"
+        user.deleted_at = datetime.utcnow()
+        self.db.commit()
+        self.db.refresh(user)
+        return user

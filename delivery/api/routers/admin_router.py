@@ -9,7 +9,7 @@ from usecases.contribution_usecase import UpdateContributionStatusUsecase
 
 router = APIRouter(
     prefix="/api/admin",
-    tags=["Admin"]
+    tags=["Admin - Contribution Management"]
 )
 
 @router.patch("/contributions/{id}")
