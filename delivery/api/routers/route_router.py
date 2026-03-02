@@ -3,6 +3,12 @@
 from fastapi import APIRouter, Query
 from domain.route_model import PlanRequest
 from delivery.api.controllers.route_controller import plan_trip_controller
+from repository.auth_identity_repository import AuthIdentityRepository
+from infrastructure.database import get_db
+from sqlalchemy.orm import Session
+from infrastructure.auth.firebase_auth import get_current_firebase_user 
+from fastapi import Depends, HTTPException, status, Query
+
 from typing import List  
 
 router = APIRouter(prefix="/routes", tags=["routes"])
@@ -13,8 +19,22 @@ async def plan_trip(
     sortby: str = Query(
         "time", 
         description="Sort by 'time', 'price', 'walk', 'transfers'"
-    )
+    ),
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+    
 ):
+
+    auth_repo = AuthIdentityRepository(db)
+
+    # Validate authenticated user exists locally
+    internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_user["uid"])
+    if not internal_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user not found in local DB"
+        )
+
  
     itineraries = await plan_trip_controller(data)
 
