@@ -35,8 +35,8 @@ async def submit_contribution(
 
 async def get_user_contributions_controller(
     user_id:str,
-    page:int,
-    limit:int,
+    page:int = 1,
+    limit:int = 10,
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
