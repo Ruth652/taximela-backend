@@ -64,3 +64,4 @@ async def update_current_user_controller(
         raise HTTPException(400, "No valid fields provided")
 
     return {"message": "Profile updated successfully", "user": updated_user}
+
