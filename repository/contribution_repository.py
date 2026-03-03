@@ -89,19 +89,42 @@ class ContributionRepository:
     
 
     def get_contributions_by_user_uuid(self, user_id, page:int, limit:int):
-        contributions = self.db.query(Contribution).filter(Contribution.user_id == user_id).order_by(Contribution.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+        base_query = self.db.query(Contribution).filter(
+        Contribution.user_id == user_id
+        )
 
-        return [
+        total_count = base_query.count()
+        contributions = (
+            base_query
+            .order_by(Contribution.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
+
+        #  Format data
+        data = [
             {
                 "id": c.id,
-                "report_type": c.target_type,  
+                "report_type": c.target_type,
                 "description": c.description,
                 "status": c.status,
                 "created_at": c.created_at,
-                "updated_at":c.updated_at,
+                "updated_at": c.updated_at,
             }
             for c in contributions
         ]
+
+
+        return {
+            "data": data,
+            "total_count": total_count,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total_count + limit - 1) // limit
+        }
+
+
     async def get_contribution_stats_for_all_users(self):
         result = self.db.query(
         func.count(Contribution.id).label("total"),
