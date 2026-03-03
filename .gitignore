@@ -8,3 +8,4 @@ venv/
 otp.jar
 *firebase*.json
 taximela.db
+firebase_key.json
