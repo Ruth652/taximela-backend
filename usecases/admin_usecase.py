@@ -44,6 +44,7 @@ def update_user_status_usecase(db, firebase_uid: str, user_id: int, new_status: 
         raise UserNotFoundError("User not found.")
     return user 
 
+
 def update_admin_usecase(db, firebase_uid: str, admin_id: str, payload: UpdateAdminRequest):
     auth_repo = AuthIdentityRepository(db)
     
@@ -94,3 +95,4 @@ def delete_admin_usecase(db, firebase_uid: str, admin_id: str):
         raise UserNotFoundError("Admin not found.")
     
     return admin
+

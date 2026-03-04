@@ -43,6 +43,7 @@ def get_contributions_by_user(db,requested_user_firebase_uid: str, firebase_uid:
     internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
     if not internal_uuid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB")
+    # to do check if the id is commuter's or admin's or else return 401 again if necessary 
 
     repo = ContributionRepository(db)
     return repo.get_contributions_by_user_uuid(internal_uuid, page, limit)

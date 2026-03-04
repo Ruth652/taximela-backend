@@ -8,15 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from delivery.api.routers import health
-from delivery.api.routers.route_router import router as route_router
-from delivery.api.routers.poi_router import router as poi_router
-from delivery.api.routers.geocode_router import router as geocode_router
-from delivery.api.routers.contribution_router import router as contribution_router
-from delivery.api.routers.contributions_router import router as contributions_router 
-from delivery.api.routers.user_router import router as user_router
-from delivery.api.routers.admin_router import router as admin_router  
-from delivery.api.routers.admin_user_router import router as admin_user_router
+from delivery.api.routers import all_routers
 
 from infrastructure.database import Base, engine
 import domain
@@ -69,17 +61,8 @@ def create_app() -> FastAPI:
             }
         )
 
-    app.include_router(health.router)
-    app.include_router(route_router)
-    app.include_router(poi_router)
-    app.include_router(geocode_router)
-
-    app.include_router(contribution_router, prefix="/api")
-    app.include_router(contributions_router, prefix="/api") 
-    app.include_router(user_router, prefix="/api")
-    app.include_router(admin_router, prefix="/api") 
-
-    app.include_router(admin_user_router)
+    for r in all_routers:
+        app.include_router(r["router"], prefix = r["prefix"])
 
     return app
 
