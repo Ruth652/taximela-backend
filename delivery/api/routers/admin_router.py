@@ -10,7 +10,7 @@ from delivery.api.dependencies.admin_auth import get_current_operational_admin
 
 router = APIRouter(
     prefix="/api/admin",
-    tags=["Admin - Contribution"]
+    tags=["Admin - Contribution Management"]
 )
 
 @router.patch("/contributions/{id}")

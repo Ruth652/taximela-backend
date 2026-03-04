@@ -76,11 +76,9 @@ def create_user_first_login(
 def create_admin_first_login(
     db,
     creator_firebase_uid: str,
-    new_user_email: str,
-    payload: dict | None = None,
+    user_id,
     *,
     role: str | None = None,
-    new_user_firebase_uid: str | None = None
 ):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
@@ -89,46 +87,18 @@ def create_admin_first_login(
     if not creator_user_id:
         raise UserNotFoundError()
 
-    if not auth_repo.get_super_admin_uuid_by_firebase_uid([creator_user_id]):
+    if not auth_repo.get_super_admin_uuid_by_firebase_uid([creator_firebase_uid]):
         raise PermissionDeniedError()
 
-    payload = payload or {}
+    user = user_repo.get_user_by_id(user_id)
+    if not user:
+        raise UserNotFoundError()
 
-    try:
-        with db.begin():
-            user = user_repo.get_user_by_email(new_user_email)
-
-            if not user:
-                user = user_repo.create_user(
-                    email=new_user_email,
-                    full_name=payload.get("full_name"),
-                    preferred_language=payload.get("preferred_language", "en"),
-                )
-                db.flush()
-
-            if new_user_firebase_uid:
-                existing_link = auth_repo.get_user_uuid_by_firebase_uid(new_user_firebase_uid)
-                if not existing_link:
-                    auth_repo.create_auth_identity(
-                        firebase_uid=new_user_firebase_uid,
-                        entity_id=user.id,
-                        entity_type="admin" if role else "user"
-                    )
-
-            if role:
-                user_repo.promote_to_admin(
-                    user.id,
-                    role=role,
-                    created_by=creator_user_id
-                )
-
-    except IntegrityError:
-        db.rollback()
-        user = user_repo.get_user_by_email(new_user_email)
-        if not user:
-            raise
-
-    user = user_repo.get_user_by_id(user.id)
+    user_repo.promote_to_admin(
+        user.id,
+        role=role,
+        created_by=creator_user_id
+    )
 
     return {
         "id": user.id,
