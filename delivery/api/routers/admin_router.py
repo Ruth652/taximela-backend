@@ -8,7 +8,7 @@ from usecases.contribution_usecase import UpdateContributionStatusUsecase
 
 
 router = APIRouter(
-    prefix="/api/admin",
+    prefix="/admin",
     tags=["Admin - Contribution Management"]
 )
 

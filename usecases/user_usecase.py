@@ -77,9 +77,8 @@ def create_user_first_login(
 def create_admin_first_login(
     db,
     creator_firebase_uid: str,
-    user_id,
-    *,
-    role: str | None = None,
+    new_user,
+    create_firebase_user
 ):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
@@ -90,22 +89,42 @@ def create_admin_first_login(
 
     if not auth_repo.get_super_admin_uuid_by_firebase_uid([creator_firebase_uid]):
         raise PermissionDeniedError()
-
-    user = user_repo.get_user_by_id(user_id)
-    if not user:
-        raise UserNotFoundError()
-
+    
+    creator_admin_id = auth_repo.get_admin_id_by_user_id(creator_user_id)
+    if not creator_admin_id:
+        raise PermissionDeniedError()
+    
+    firebase = create_firebase_user(
+        email=new_user.email,
+        password="DefaultPassword123!",  # In production, generate a secure random password and communicate it securely
+        display_name=new_user.full_name
+    ) 
+    user = user_repo.create_user(
+        email=new_user.email,
+        full_name=new_user.full_name,
+        preferred_language="en",
+    )
+    auth_repo.create_auth_identity(
+        firebase_uid=firebase.uid,
+        entity_type="admin",
+        entity_id=user.id 
+    )
+        
     user_repo.promote_to_admin(
         user.id,
-        role=role,
-        created_by=creator_user_id
+        role=new_user.role,
+        created_by=creator_admin_id
     )
+        
+    db.commit()
 
     return {
         "id": user.id,
         "email": user.email,
         "full_name": user.full_name,
+        "role": new_user.role
     }
+    
 
 def get_current_user(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)

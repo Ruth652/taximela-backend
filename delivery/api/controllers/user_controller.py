@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from domain.admin_model import CreateAdminRequest
 from infrastructure.database import get_db
 from domain.user_model import UpdateUserRequest, CreateUserRequest
-from infrastructure.auth.firebase_auth import get_current_firebase_user
+from infrastructure.auth.firebase_auth import create_firebase_user, get_current_firebase_user
 from usecases.user_usecase import create_admin_first_login, create_user_first_login, get_current_user, UserNotFoundError, NoUpdateFieldsError, update_current_user
 
 
@@ -30,9 +30,11 @@ async def create_admin_controller(
     return create_admin_first_login(
         db=db,
         creator_firebase_uid=auth_user_id,
-        user_id=payload.user_id,
-        role=payload.role if payload else None,        
+        new_user=payload,  
+        create_firebase_user=create_firebase_user      
     )
+    
+   
    
 async def get_current_user_controller(
     firebase_user: dict = Depends(get_current_firebase_user),
