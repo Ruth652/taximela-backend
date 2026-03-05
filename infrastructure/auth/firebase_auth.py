@@ -13,7 +13,6 @@ load_dotenv()
 if not firebase_admin._apps:
 
     if os.getenv("ENV") == "production":
-        # Production: load credentials from environment variable
         firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
 
         if not firebase_credentials:
@@ -23,7 +22,6 @@ if not firebase_admin._apps:
         cred = credentials.Certificate(cred_dict)
 
     else:
-        # Local development: load from file
         cred = credentials.Certificate("firebase_key.json")
 
     firebase_admin.initialize_app(cred)
@@ -44,5 +42,26 @@ def get_current_firebase_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
+        )
+
+def create_firebase_user(email: str, password: str, display_name: str = None):
+    try:
+        user = auth.create_user(
+            email=email,
+            password=password,
+            display_name=display_name
+        )
+        return user
+    
+    except auth.EmailAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already exists in Firebase."
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Firebase error: {str(e)}"
         )
 

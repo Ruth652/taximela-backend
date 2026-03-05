@@ -9,7 +9,7 @@ from usecases.contribution_usecase import UpdateContributionStatusUsecase
 from delivery.api.dependencies.admin_auth import get_current_operational_admin
 
 router = APIRouter(
-    prefix="/api/admin",
+    prefix="/admin",
     tags=["Admin - Contribution Management"]
 )
 
