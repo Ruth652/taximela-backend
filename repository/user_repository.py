@@ -99,6 +99,7 @@ class UserRepository:
             
 
         self.db.add(admin)
+        self.db.flush()
      
         return admin
     
