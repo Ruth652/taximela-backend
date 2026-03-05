@@ -7,6 +7,7 @@ class NoUpdateFieldsError(Exception): pass
 class PermissionDeniedError(Exception): pass
 
 
+
 def create_user_first_login(
     db,
     firebase_uid: str,
@@ -21,7 +22,7 @@ def create_user_first_login(
 
     payload = payload or {}
 
-    # 1 Check Firebase identity first 
+    # 1️⃣ Check if Firebase identity already exists
     existing_user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
 
     if existing_user_id:
@@ -34,40 +35,33 @@ def create_user_first_login(
             "full_name": user.full_name,
         }
 
-    try:
-        with db.begin_nested():
-            # 2️ Check if user exists by email
+    # 2️ Check if user exists by email
+    print("# 2 Check if user exists by email")
+    user = user_repo.get_user_by_email(email)
 
-            user = user_repo.get_user_by_email(email)
+    # 3️ If user does not exist → create user
+    if not user:
+        print("# 3 If user does not exist → create user")
 
-            # 3️ If user does not exist → create user
-            if not user:
-                user = user_repo.create_user(
-                    email=email,
-                    full_name=payload.get("full_name"),
-                    preferred_language=payload.get("preferred_language", "en"),
-                    is_commuter=payload.get("is_commuter", False),
-                    is_business_owner=payload.get("is_business_owner", False)
-                )
-                db.flush()
+        user = user_repo.create_user(
+            email=email,
+            full_name=payload.get("full_name"),
+            preferred_language=payload.get("preferred_language", "en"),
+            is_commuter=payload.get("is_commuter", False),
+            is_business_owner=payload.get("is_business_owner", False),
+        )
 
-            # 4️ Create auth identity mapping
-            auth_repo.create_auth_identity(
-                firebase_uid=firebase_uid,
-                entity_id=user.id,
-                entity_type=entity_type
-            )
+    user_id = user.id
 
-            db.flush()
-
-    except Exception:
-        db.rollback()
-        raise
-
-    user = user_repo.get_user_by_id(user.id)
+    # 4️ Create auth identity mapping
+    auth_repo.create_auth_identity(
+        firebase_uid=firebase_uid,
+        entity_id=user_id,
+        entity_type=entity_type
+    )
 
     return {
-        "id": user.id,
+        "id": user_id,
         "firebase_uid": firebase_uid,
         "email": user.email,
         "full_name": user.full_name,

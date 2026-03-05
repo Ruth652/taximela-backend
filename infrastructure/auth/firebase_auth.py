@@ -43,7 +43,7 @@ def get_current_firebase_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
-    
+
 def create_firebase_user(email: str, password: str, display_name: str = None):
     try:
         user = auth.create_user(
@@ -64,3 +64,4 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Firebase error: {str(e)}"
         )
+
