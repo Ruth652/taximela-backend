@@ -11,6 +11,7 @@ class AdminUsecase:
     def get_business_registrations(
         self,
         status=None,
+        user_id=None,
         from_date=None,
         to_date=None,
         search=None,
@@ -23,9 +24,18 @@ class AdminUsecase:
 
         return self.business_repo.get_filtered_registrations(
             status=status,
+            user_id = user_id,
             from_date=from_date,
             to_date=to_date,
             search=search,
             page=page,
             limit=limit
         )
+    def get_business_registration_by_id(self, registration_id):
+
+        registration = self.business_repo.get_registration_by_id(registration_id)
+
+        if not registration:
+            raise ValueError("Business registration not found")
+
+        return registration
