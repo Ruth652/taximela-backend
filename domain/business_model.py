@@ -49,6 +49,9 @@ class Business(Base):
 
     # Relationships
     owner = relationship("User", back_populates="businesses")
+    category = relationship("BusinessCategory")
+    approved_by_admin = relationship("Admin")
+ 
     category = relationship("BusinessCategory", back_populates="businesses")
     approver = relationship("Admin", back_populates="businesses")
     
@@ -83,3 +86,4 @@ class BusinessInformation(BaseModel):
     created_at: str
     updated_at: str
         
+
