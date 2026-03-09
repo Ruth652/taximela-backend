@@ -17,6 +17,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
+from pydantic import BaseModel, field_validator
+
 
 from infrastructure.database import Base
 class Business(Base):
@@ -50,3 +52,38 @@ class Business(Base):
     category = relationship("BusinessCategory")
     approved_by_admin = relationship("Admin")
  
+    category = relationship("BusinessCategory", back_populates="businesses")
+    approver = relationship("Admin", back_populates="businesses")
+    
+    
+class AdminUpdateBusinessRequest(BaseModel):
+    name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: Optional[str] = None
+    @field_validator("status")
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+    category_id: Optional[uuid.UUID] = None
+
+class BusinessInformation(BaseModel):
+    id: uuid.UUID
+    name: str
+    latitude: float
+    longitude: float
+    government_id_fan: str
+    government_id_photo_url: str
+    business_logo: Optional[str]
+    license_photo_url: str
+    status: Optional[str]
+    approved_by: Optional[uuid.UUID]
+    approver_name: Optional[str]
+    category_id: Optional[uuid.UUID]
+    category_name: Optional[str]
+    approved_at: Optional[str]
+    created_at: str
+    updated_at: str
+        
+

@@ -9,12 +9,15 @@ from delivery.api.controllers.admin_business_controller import (
     review_business_application_controller,
     get_businesses_controller
 )
+from delivery.api.controllers.business_controller import get_business_controller
 from delivery.api.dependencies.admin_auth import get_current_operational_admin
 from domain.business_registration.schemas import BusinessRegistrationFilterDTO
 from domain.business.schemas import BusinessFilterDTO
 from domain.business_registration.schemas import ReviewBusinessApplicationRequest
 from domain.admin_model import Admin
 from delivery.api.controllers.admin_business_controller import review_business_application_controller
+from repository.auth_identity_repository import AuthIdentityRepository
+from infrastructure.auth.firebase_auth import get_current_firebase_user as verify_token
 
 
 
@@ -67,6 +70,7 @@ async def review_business_application(
         rejection_reason=body.rejection_reason,  
     )
 
+
 @router.get("/businesses")
 async def get_businesses(
     filters: BusinessFilterDTO = Depends(),
@@ -86,3 +90,18 @@ async def get_businesses(
         page=filters.page,
         limit=filters.limit
     )
+
+    
+@router.get("/business/{business_id}")
+async def get_business_details(
+    business_id: str,
+    user=Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    
+    return get_business_controller(
+        db,
+        user_id=user['uid'],
+        business_id=business_id
+    )
+    
