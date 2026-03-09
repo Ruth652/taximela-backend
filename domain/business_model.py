@@ -17,6 +17,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
+from pydantic import BaseModel, field_validator
+
 
 from infrastructure.database import Base
 class Business(Base):
@@ -47,3 +49,17 @@ class Business(Base):
 
     # Relationships
     owner = relationship("User", back_populates="businesses")
+    
+    
+class AdminUpdateBusinessRequest(BaseModel):
+    name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: Optional[str] = None
+    @field_validator("status")
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+    category_id: Optional[uuid.UUID] = None
+        
