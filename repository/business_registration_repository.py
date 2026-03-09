@@ -1,3 +1,4 @@
+from domain.business_model import Business
 from domain.business_registration_model import BusinessRegistration
 from domain.business_category_model import BusinessCategory
 from domain.user_model import User
@@ -177,6 +178,9 @@ class  BusinessRegistrationRepository:
         print(f"Updated registration {registration.id} to status {status}")
         print(registration)
         return registration
+    
+    def get_business_by_id(self, business_id):
+        return self.db.query(Business).filter(Business.id == business_id).first()
 
 
 

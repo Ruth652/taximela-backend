@@ -49,6 +49,8 @@ class Business(Base):
 
     # Relationships
     owner = relationship("User", back_populates="businesses")
+    category = relationship("BusinessCategory", back_populates="businesses")
+    approver = relationship("Admin", back_populates="businesses")
     
     
 class AdminUpdateBusinessRequest(BaseModel):
@@ -62,4 +64,22 @@ class AdminUpdateBusinessRequest(BaseModel):
             return None
         return v
     category_id: Optional[uuid.UUID] = None
+
+class BusinessInformation(BaseModel):
+    id: uuid.UUID
+    name: str
+    latitude: float
+    longitude: float
+    government_id_fan: str
+    government_id_photo_url: str
+    business_logo: Optional[str]
+    license_photo_url: str
+    status: Optional[str]
+    approved_by: Optional[uuid.UUID]
+    approver_name: Optional[str]
+    category_id: Optional[uuid.UUID]
+    category_name: Optional[str]
+    approved_at: Optional[str]
+    created_at: str
+    updated_at: str
         

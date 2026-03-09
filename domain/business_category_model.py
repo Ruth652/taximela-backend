@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import text
+from sqlalchemy.orm import relationship
 
 from infrastructure.database import Base
 
@@ -25,3 +26,7 @@ class BusinessCategory(Base):
         TIMESTAMP,
         server_default=text("now()")
     )
+    
+    businesses = relationship("Business", back_populates="category")
+    
+    
