@@ -27,3 +27,7 @@ class BusinessRepository:
         self.db.refresh(business)
 
         return business
+    
+    def get_business_by_id(self, business_id):
+        return self.db.query(Business).filter(Business.id == business_id).first()
+    

@@ -1,8 +1,10 @@
 from fastapi import HTTPException
+from domain.business_model import BusinessInformation
 from domain.enums.business_registration_status import (
     BusinessRegistrationStatus,
     ApplicationAction
 )
+from repository.auth_identity_repository import AuthIdentityRepository
 from repository.business_repository import BusinessRepository
 
 from repository.business_registration_repository import (
@@ -91,3 +93,36 @@ class AdminUsecase:
             )
 
         return {"message": "Application reviewed successfully"}
+    
+    def get_business_details(self, business_id, user_id):
+        
+        auth_repo = AuthIdentityRepository(self.db)
+        admin_uuid = auth_repo.get_super_business_admin_uuid_by_firebase_uid([user_id])
+        
+        if not admin_uuid:
+            raise HTTPException(403, "Unauthorized")
+        
+        business_repo = BusinessRepository(self.db)
+        business = business_repo.get_business_by_id(business_id)
+
+        if not business:
+            raise HTTPException(404, "Business not found")
+
+        return BusinessInformation(
+            id=business.id,
+            name=business.name,
+            latitude=business.latitude,
+            longitude=business.longitude,
+            government_id_fan=business.government_id_fan,
+            government_id_photo_url=business.government_id_photo_url,
+            business_logo=business.business_logo,
+            license_photo_url=business.license_photo_url,
+            status=business.status,
+            approved_by=business.approved_by,
+            approver_name = business.approver.user.full_name if business.approver and business.approver.user else None,          
+            category_id=business.category_id,
+            category_name=business.category.name if business.category else None,
+            approved_at=business.approved_at.isoformat() if business.approved_at else None,
+            created_at=business.created_at.isoformat() if business.created_at else None,
+            updated_at=business.updated_at.isoformat() if business.updated_at else None
+        )

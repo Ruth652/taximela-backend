@@ -22,4 +22,5 @@ all_routers = [
     {"router": admin_router, "prefix": ""},
     {"router": admin_user_router, "prefix": ""},
     {"router": admin_business_router, "prefix": ""},
+    
 ]

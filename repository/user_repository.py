@@ -21,7 +21,7 @@ class UserRepository:
             preferred_language = preferred_language,
             is_commuter=is_commuter,
             is_business_owner=is_business_owner,
-            rating_score = 10
+            rating_score = 20
 
         )
 
