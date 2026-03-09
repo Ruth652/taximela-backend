@@ -47,3 +47,6 @@ class Business(Base):
 
     # Relationships
     owner = relationship("User", back_populates="businesses")
+    category = relationship("BusinessCategory")
+    approved_by_admin = relationship("Admin")
+ 

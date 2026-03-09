@@ -1,4 +1,6 @@
 from domain.business_model import Business
+from domain.business_category_model import BusinessCategory
+from domain.user_model import User
 #from datetime import datetime
 
 
@@ -27,3 +29,64 @@ class BusinessRepository:
         self.db.refresh(business)
 
         return business
+    def get_filtered_registrations(
+        self,
+        status,
+        user_id,
+        from_date,
+        to_date,
+        search,
+        page,
+        limit
+    ):
+
+        query = (
+            self.db.query(Business)
+            .join(Business.owner)
+            .join(Business.category)
+        )
+        # use outer join if you want to include businesses without a category(but if i do that i need to handle the case where category is None in the search filter)
+
+        if user_id:
+            query = query.filter(Business.owner_id == user_id)
+
+        if status:
+            query = query.filter(Business.status == status)
+
+        if from_date:
+            query = query.filter(Business.created_at >= from_date)
+
+        if to_date:
+            query = query.filter(Business.created_at <= to_date)
+
+        if search:
+            query = query.filter(BusinessCategory.name.ilike(f"%{search}%"))
+
+        total = query.count()
+
+        records = (
+            query.order_by(Business.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
+
+        return {
+            "data": [
+                {
+                    "id": r.id,
+                    "business_name": r.name,
+                    "owner_name": r.owner.full_name,
+                    "owner_profile_picture_url": r.owner.profile_picture_url,
+                    "status": r.status,
+                    "category": r.category.name if r.category else None,
+                    "category_id": r.category_id,
+                    "created_at": r.created_at,
+                    "updated_at": r.updated_at,
+                }
+                for r in records
+            ],
+            "total": total,
+            "page": page,
+            "limit": limit,
+        }
