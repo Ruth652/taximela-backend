@@ -37,3 +37,21 @@ async def get_business_registration_controller(
     usecase = AdminUsecase(db)
     return usecase.get_business_registration_by_id(registration_id)
 
+def review_business_application_controller(
+    db,
+    registration_id,
+    action,
+    admin_id,
+    rejection_reason=None
+):
+    print("inside controller")
+
+    usecase = AdminUsecase(db)
+
+    return usecase.review_business_application_usecase(
+        registration_id=registration_id,
+        action=action,
+        rejection_reason=rejection_reason,
+        admin_id=admin_id,
+    )
+  

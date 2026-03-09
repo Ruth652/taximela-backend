@@ -40,7 +40,7 @@ class Business(Base):
     approved_by = Column(UUID(as_uuid=True), ForeignKey("admins.id"), nullable=True)
     category_id = Column(UUID(as_uuid=True), ForeignKey("business_categories.id"))
 
-    approved_at = Column(TIMESTAMP, nullable=True)
+    approved_at = Column(TIMESTAMP, server_default=text("now()"))
 
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
