@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, Field
+from typing import Optional, Literal
+from pydantic import BaseModel, Field,field_validator
 from uuid import UUID
 from domain.enums.business_registration_status import BusinessRegistrationStatus
-
+from domain.enums.business_registration_status import ApplicationAction
 
 class BusinessRegistrationFilterDTO(BaseModel):
     status: Optional[BusinessRegistrationStatus] = Field(
@@ -50,3 +50,18 @@ class BusinessRegistrationFilterDTO(BaseModel):
                 raise ValueError(
                     "from_date cannot be greater than to_date"
                 )
+
+class ReviewBusinessApplicationRequest(BaseModel):
+    action: ApplicationAction
+    rejection_reason: Optional[str] = None
+
+    @field_validator("rejection_reason")
+    def validate_rejection_reason(cls, v, info):
+        action = info.data.get("action")
+
+        if action == ApplicationAction.reject and not v:
+            raise ValueError(
+                "rejection_reason is required when rejecting an application"
+            )
+
+        return v
