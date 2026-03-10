@@ -29,5 +29,8 @@ class BusinessRepository:
         return business
     
     def get_business_by_id(self, business_id):
+        print(f"Fetching business with ID: {business_id}")
         return self.db.query(Business).filter(Business.id == business_id).first()
+    
+    
     

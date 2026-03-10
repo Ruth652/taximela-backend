@@ -57,11 +57,12 @@ class User(Base):
         back_populates="user"
     )
 
-    businesses = relationship(
+    business = relationship(
         "Business",
         back_populates="owner"
     )
     
+   
 class UpdateUserRequest(BaseModel):
     full_name: Optional[str] = Field(
         None, 

@@ -48,9 +48,9 @@ class Business(Base):
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
 
     # Relationships
-    owner = relationship("User", back_populates="businesses")
-    category = relationship("BusinessCategory", back_populates="businesses")
-    approver = relationship("Admin", back_populates="businesses")
+    owner = relationship("User", back_populates="business")
+    category = relationship("BusinessCategory", back_populates="business")
+    approver = relationship("Admin", back_populates="business")
     
     
 class AdminUpdateBusinessRequest(BaseModel):
