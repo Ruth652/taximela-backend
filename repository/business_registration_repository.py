@@ -179,8 +179,18 @@ class  BusinessRegistrationRepository:
         print(registration)
         return registration
     
-    def get_business_by_id(self, business_id):
-        return self.db.query(Business).filter(Business.id == business_id).first()
+    def get_business_stats(self):
+        total_businesses = self.db.query(BusinessRegistration).count()
+        approved_businesses = self.db.query(BusinessRegistration).filter(BusinessRegistration.status == 'approved').count()
+        pending_businesses = self.db.query(BusinessRegistration).filter(BusinessRegistration.status == 'pending_review').count()
+        rejected_businesses = self.db.query(BusinessRegistration).filter(BusinessRegistration.status == 'rejected').count()
+
+        return {
+            "total_businesses": total_businesses,
+            "approved_businesses": approved_businesses,
+            "pending_businesses": pending_businesses,
+            "rejected_businesses": rejected_businesses
+        }
 
 
 

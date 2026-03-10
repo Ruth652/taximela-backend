@@ -10,6 +10,7 @@ from repository.business_repository import BusinessRepository
 from repository.business_registration_repository import (
     BusinessRegistrationRepository
 )
+from uuid import UUID
 
 class AdminUsecase:
 
@@ -95,6 +96,19 @@ class AdminUsecase:
 
         return {"message": "Application reviewed successfully"}
     
+    def get_business_stats(self, user_id):
+        auth_repo = AuthIdentityRepository(self.db)
+        admin_uuid_set = auth_repo.get_super_business_admin_uuid_by_firebase_uid([user_id])
+        if not admin_uuid_set:
+            raise HTTPException(status_code=403, detail="Unauthorized")
+
+        try:
+            business_repo = BusinessRegistrationRepository(self.db)
+            stats = business_repo.get_business_stats()
+            return stats
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="Error occurred while fetching business stats")
+        
     def get_business_details(self, business_id, user_id):
         
         auth_repo = AuthIdentityRepository(self.db)
@@ -105,6 +119,7 @@ class AdminUsecase:
         
         business_repo = BusinessRepository(self.db)
         business = business_repo.get_business_by_id(business_id)
+        
 
         if not business:
             raise HTTPException(404, "Business not found")

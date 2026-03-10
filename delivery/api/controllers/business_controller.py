@@ -37,3 +37,10 @@ def get_business_controller(
     ):
     usecase = AdminUsecase(db)
     return usecase.get_business_details(business_id, user_id)
+
+def get_business_stats_controller(
+    db,
+    user_id
+):
+    usecase = AdminUsecase(db)
+    return usecase.get_business_stats(user_id)

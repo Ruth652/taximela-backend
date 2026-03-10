@@ -29,7 +29,6 @@ class BusinessRepository:
         self.db.refresh(business)
 
         return business
-<<<<<<< HEAD
     def get_filtered_registrations(
         self,
         status,
@@ -91,9 +90,11 @@ class BusinessRepository:
             "page": page,
             "limit": limit,
         }
-=======
     
     def get_business_by_id(self, business_id):
+        print(f"Fetching business with ID: {business_id}")
         return self.db.query(Business).filter(Business.id == business_id).first()
     
->>>>>>> main
+    
+    
+

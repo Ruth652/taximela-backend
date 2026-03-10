@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Path, Query,  HTTPException
 from datetime import datetime
 
 from sqlalchemy.orm import Session
+from domain.business_model import Business
 from infrastructure.db_dependency import get_db
 from delivery.api.controllers.admin_business_controller import (
     get_business_registrations_controller,
@@ -9,7 +10,7 @@ from delivery.api.controllers.admin_business_controller import (
     review_business_application_controller,
     get_businesses_controller
 )
-from delivery.api.controllers.business_controller import get_business_controller
+from delivery.api.controllers.business_controller import get_business_controller, get_business_stats_controller
 from delivery.api.dependencies.admin_auth import get_current_operational_admin
 from domain.business_registration.schemas import BusinessRegistrationFilterDTO
 from domain.business.schemas import BusinessFilterDTO
@@ -18,6 +19,7 @@ from domain.admin_model import Admin
 from delivery.api.controllers.admin_business_controller import review_business_application_controller
 from repository.auth_identity_repository import AuthIdentityRepository
 from infrastructure.auth.firebase_auth import get_current_firebase_user as verify_token
+from uuid import UUID
 
 
 
@@ -70,6 +72,15 @@ async def review_business_application(
         rejection_reason=body.rejection_reason,  
     )
 
+@router.get("/business/stats")
+async def get_business_stats(
+    user=Depends(verify_token),
+    db: Session = Depends(get_db),
+):
+    return get_business_stats_controller(
+        db,
+        user_id=user['uid']
+    )
 
 @router.get("/businesses")
 async def get_businesses(
@@ -94,10 +105,11 @@ async def get_businesses(
     
 @router.get("/business/{business_id}")
 async def get_business_details(
-    business_id: str,
+    business_id: UUID,
     user=Depends(verify_token),
     db: Session = Depends(get_db),
 ):
+    print(business_id)
     
     return get_business_controller(
         db,
