@@ -30,7 +30,7 @@ class Admin(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", back_populates="admins")
-    business = relationship("Business", back_populates="approver")
+    businesses = relationship("Business", back_populates="approver")
     
     
     

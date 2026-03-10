@@ -27,6 +27,6 @@ class BusinessCategory(Base):
         server_default=text("now()")
     )
     
-    business = relationship("Business", back_populates="category")
+    businesses = relationship("Business", back_populates="category")
     
     

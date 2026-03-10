@@ -57,7 +57,7 @@ class User(Base):
         back_populates="user"
     )
 
-    business = relationship(
+    businesses = relationship(
         "Business",
         back_populates="owner"
     )
