@@ -40,6 +40,7 @@ class AdminUsecase:
             page=page,
             limit=limit
         )
+
     def get_business_registration_by_id(self, registration_id):
         print("Inside usecase")
 
