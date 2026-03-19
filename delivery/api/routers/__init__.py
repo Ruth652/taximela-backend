@@ -1,4 +1,5 @@
 
+from .otp_router import router as otp_router
 from .route_router import router as route_router
 from .poi_router import router as poi_router
 from .geocode_router import router as geocode_router
@@ -22,5 +23,6 @@ all_routers = [
     {"router": admin_router, "prefix": ""},
     {"router": admin_user_router, "prefix": ""},
     {"router": admin_business_router, "prefix": ""},
+    {"router": otp_router, "prefix": ""}
     
 ]

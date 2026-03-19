@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import psycopg2
 load_dotenv()
 
 from fastapi import FastAPI, Request
@@ -63,6 +64,11 @@ def create_app() -> FastAPI:
 
     for r in all_routers:
         app.include_router(r["router"], prefix = r["prefix"])
+    try:
+        psycopg2.connect("postgresql://postgres:TaxiMela123@db.cldxkswkintnwktfjwrf.supabase.co:5432/postgres")
+        print("OK")
+    except Exception as e:
+        print("ERR", e)
 
     return app
 
