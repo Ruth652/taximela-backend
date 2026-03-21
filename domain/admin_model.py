@@ -31,6 +31,7 @@ class Admin(Base):
 
     user = relationship("User", back_populates="admins")
     businesses = relationship("Business", back_populates="approver")
+    gtfs_queue = relationship("GTFS", back_populates="admin")
     
     
     
