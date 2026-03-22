@@ -26,8 +26,8 @@ async def get_contribution_stats_controller(
 
 async def submit_contribution(
     data: ContributeSchema,
-    firebase_user: UUID = Depends(get_current_firebase_user),
-    db: Session = Depends(get_db)
+    firebase_user: str,
+    db: Session 
 ):
     firebase_uid = str(firebase_user)    
     
@@ -77,5 +77,4 @@ async def get_all_contribution_stats(
     db: Session,
     user_id: str
 ):
-    auth_user_id = user_id 
-    return await GetContributionStatsAdmin(db, user_id, auth_user_id)
+    return await GetContributionStatsAdmin(db, user_id)

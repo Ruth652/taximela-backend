@@ -1,65 +1,35 @@
-from ast import stmt
-from unittest import result
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func, case, select
-from domain.contribution_model import Contribution
-from domain.contribution_model import ContributionStatusEnum
+from domain.contribution_model import Contribution, ContributionStatusEnum
+from domain import User
 import json
-from domain import User, Contribution
-
-from sqlalchemy.orm import selectinload
-
 
 
 class ContributionRepository:
     def __init__(self, db: Session):
         self.db = db
-        
-    def get_contribution_by_id(self, contribution_id):
+
+    # --- Get single contribution ---
+    def get_contribution_by_id(self, contribution_id: int):
         return self.db.query(Contribution).filter(Contribution.id == contribution_id).first()
 
-    def get_last_user_contribution(self, user_id, exclude_id=int):
-        return (
-        self.db.query(Contribution)
-        .filter(Contribution.user_id == user_id)
-        .filter(Contribution.id != exclude_id)
-        .filter(Contribution.status.in_(["approved", "rejected"]))
-        .order_by(Contribution.created_at.desc())
-        .first()
-    )
-    def get_contribution_stats_by_user_uuid(self, user_id):
+    # --- Get last user contribution, excluding one ---
+    def get_last_user_contribution(self, user_id: int, exclude_id: int = None):
+        query = self.db.query(Contribution).filter(Contribution.user_id == user_id)
+        if exclude_id:
+            query = query.filter(Contribution.id != exclude_id)
+        return query.filter(Contribution.status.in_(["approved", "rejected"])) \
+                    .order_by(Contribution.created_at.desc()) \
+                    .first()
+
+    # --- Contribution stats per user ---
+    def get_contribution_stats_by_user_uuid(self, user_id: int):
         result = self.db.query(
             func.count(Contribution.id).label("total"),
-
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Contribution.status == "pending_review", 1),
-                        else_=0
-                    )
-                ), 0
-            ).label("pending"),
-
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Contribution.status == "approved", 1),
-                        else_=0
-                    )
-                ), 0
-            ).label("approved"),
-
-            func.coalesce(
-                func.sum(
-                    case(
-                        (Contribution.status == "rejected", 1),
-                        else_=0
-                    )
-                ), 0
-            ).label("rejected"),
-        ).filter(
-            Contribution.user_id == user_id
-        ).one()
+            func.coalesce(func.sum(case((Contribution.status == "pending_review", 1), else_=0)), 0).label("pending"),
+            func.coalesce(func.sum(case((Contribution.status == "approved", 1), else_=0)), 0).label("approved"),
+            func.coalesce(func.sum(case((Contribution.status == "rejected", 1), else_=0)), 0).label("rejected"),
+        ).filter(Contribution.user_id == user_id).one()
 
         return {
             "total": result.total,
@@ -67,33 +37,32 @@ class ContributionRepository:
             "approved": result.approved,
             "rejected": result.rejected,
         }
-    def save_contribution(self, data, user_id):
-        description_str = json.dumps(data.description.dict() if data.description else {})
 
+    # --- Create a new contribution ---
+    def create_contribution(self, data, user_id: int):
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user:
             raise ValueError("User not found")
-        
-        contribution = Contribution(
-            user_id=user_id,
+
+        db_obj = Contribution(
             target_type=data.target_type,
+            action=data.action,
             target_id=data.target_id,
-            description=description_str,
-            status=ContributionStatusEnum.pending_review,
-            trust_score_at_submit=user.rating_score if user.rating_score else None
+            payload=data.model_dump(),  # JSONB payload
+            user_id=user_id,
+            status="pending_review"
         )
-        self.db.add(contribution)
+
+        self.db.add(db_obj)
         self.db.commit()
-        self.db.refresh(contribution)
-        return contribution
-    
+        self.db.refresh(db_obj)
+        return db_obj
 
-    def get_contributions_by_user_uuid(self, user_id, page:int, limit:int):
-        base_query = self.db.query(Contribution).filter(
-        Contribution.user_id == user_id
-        )
-
+    # --- Paginated contributions by user ---
+    def get_contributions_by_user_uuid(self, user_id: int, page: int, limit: int):
+        base_query = self.db.query(Contribution).filter(Contribution.user_id == user_id)
         total_count = base_query.count()
+
         contributions = (
             base_query
             .order_by(Contribution.created_at.desc())
@@ -102,19 +71,19 @@ class ContributionRepository:
             .all()
         )
 
-        #  Format data
         data = [
             {
                 "id": c.id,
-                "report_type": c.target_type,
-                "description": c.description,
+                "target_type": c.target_type,
+                "action": c.action,
+                "target_id": c.target_id,
+                "payload": c.payload,
                 "status": c.status,
-                "created_at": c.created_at,
-                "updated_at": c.updated_at,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "updated_at": c.updated_at.isoformat() if c.updated_at else None,
             }
             for c in contributions
         ]
-
 
         return {
             "data": data,
@@ -124,20 +93,14 @@ class ContributionRepository:
             "total_pages": (total_count + limit - 1) // limit
         }
 
-
+    # --- Stats for all users ---
     async def get_contribution_stats_for_all_users(self):
         result = self.db.query(
-        func.count(Contribution.id).label("total"),
-        func.coalesce(
-            func.sum(case((Contribution.status == "pending_review", 1), else_=0)), 0
-        ).label("pending"),
-        func.coalesce(
-            func.sum(case((Contribution.status == "approved", 1), else_=0)), 0
-        ).label("approved"),
-        func.coalesce(
-            func.sum(case((Contribution.status == "rejected", 1), else_=0)), 0
-        ).label("rejected"),
-    ).all()
+            func.count(Contribution.id).label("total"),
+            func.coalesce(func.sum(case((Contribution.status == "pending_review", 1), else_=0)), 0).label("pending"),
+            func.coalesce(func.sum(case((Contribution.status == "approved", 1), else_=0)), 0).label("approved"),
+            func.coalesce(func.sum(case((Contribution.status == "rejected", 1), else_=0)), 0).label("rejected"),
+        ).all()
 
         return [
             {
@@ -148,7 +111,8 @@ class ContributionRepository:
             }
             for r in result
         ]
-            
+
+    # --- Paginated contributions by status ---
     async def get_contributions_by_status(self, status: str, page: int, limit: int):
         total_count = self.db.query(func.count(Contribution.id)) \
             .filter(Contribution.status == status) \
@@ -172,10 +136,8 @@ class ContributionRepository:
                 "user_id": str(c.user_id),
                 "full_name": c.user.full_name if c.user else "Unknown",
                 "target_type": c.target_type,
-                "action": (json.loads(c.description).get("action") if c.description else None),
-                "name": (json.loads(c.description).get("name") if c.description else None),
-                "lat": (json.loads(c.description).get("lat") if c.description else None),
-                "lon": (json.loads(c.description).get("lon") if c.description else None),
+                "action": c.action,
+                "payload": c.payload,
                 "status": c.status,
                 "trust_score": c.trust_score_at_submit,
                 "created_at": c.created_at.isoformat() if c.created_at else None,
@@ -189,19 +151,14 @@ class ContributionRepository:
             "limit": limit,
             "contributions": contributions_data
         }
-    
-    
+
+    # --- Update contribution status ---
     async def update_status(self, contribution_id: int, status: str):
         obj = self.db.query(Contribution).filter(Contribution.id == contribution_id).first()
-        
         if not obj:
-            raise None
-        
+            raise ValueError("Contribution not found")
+
         obj.status = ContributionStatusEnum(status)
-        
         self.db.flush()
         self.db.refresh(obj)
         return obj
-    
-   
-
