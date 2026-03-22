@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from domain.admin_model import UpdateAdminRequest
-from infrastructure.database import get_db
+from infrastructure.database import get_db 
 from infrastructure.auth.firebase_auth import get_current_firebase_user
 from usecases.admin_usecase import (
     delete_admin_usecase,
