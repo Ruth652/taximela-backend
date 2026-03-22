@@ -65,3 +65,7 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
             detail=f"Firebase error: {str(e)}"
         )
 
+
+
+
+

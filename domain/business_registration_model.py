@@ -19,6 +19,7 @@ from sqlalchemy.sql import text
 
 from infrastructure.database import Base
 class BusinessRegistration(Base):
+    
     __tablename__ = "business_registrations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
