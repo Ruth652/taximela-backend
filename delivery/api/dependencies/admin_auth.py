@@ -42,7 +42,7 @@ def get_current_operational_admin(
         )
 
     # Role check (only business and super admin can access)
-    if admin.role == "OPERATIONAL":  
+    if admin.role == "operational_admin":  
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient admin privileges",
