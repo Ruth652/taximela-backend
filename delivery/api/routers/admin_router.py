@@ -16,7 +16,7 @@ router = APIRouter(
 @router.patch("/contributions/{id}")
 async def approve_reject_contribution(
     id: str = Path(..., description="Contribution ID"),
-    data: ContributionUpdateSchema = None,
+    data: ContributionUpdateSchema,
     db: Session = Depends(get_db),
     user:dict = Depends(verify_token)
 ):
@@ -24,7 +24,7 @@ async def approve_reject_contribution(
         result = await update_contribution_status_controller(
             user_id=user['uid'], 
             contribution_id=id, 
-            new_status=data.status, 
+            new_status=data.status.value, 
             db=db
             )
         return result
