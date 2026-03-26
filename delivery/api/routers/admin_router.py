@@ -15,8 +15,8 @@ router = APIRouter(
 
 @router.patch("/contributions/{id}")
 async def approve_reject_contribution(
-    id: str = Path(..., description="Contribution ID"),
     data: ContributionUpdateSchema,
+    id: str = Path(..., description="Contribution ID"),
     db: Session = Depends(get_db),
     user:dict = Depends(verify_token)
 ):
