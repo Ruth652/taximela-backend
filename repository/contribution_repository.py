@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func, case, select
+from domain.contribution_group_model import ContributionGroup
 from domain.contribution_model import Contribution, ContributionStatusEnum
 from domain import User
 import json
@@ -162,3 +163,83 @@ class ContributionRepository:
         self.db.flush()
         self.db.refresh(obj)
         return obj
+    
+    def find_station_group(self, contribution_payload: dict, action: str):
+        lat = contribution_payload.get("lat")
+        lon = contribution_payload.get("lon")
+        target_id = contribution_payload.get("target_id") 
+
+        query = (
+            self.db.query(ContributionGroup)
+            .filter(ContributionGroup.target_type == "station")
+            .filter(ContributionGroup.action == action)
+        )
+
+        if action == "delete" and target_id:
+            group = query.filter(ContributionGroup.target_id == target_id).first()
+            return group
+
+        if action == "edit":
+           if target_id:
+            group = query.filter(ContributionGroup.target_id == target_id).first()
+            if group:
+                if lat and lon and group.reference_lat and group.reference_lon:
+                    if (lat - group.reference_lat)**2 + (lon - group.reference_lon)**2 <= 0.000025:
+                        return group
+                    else:
+                        return None  # same id but far away → new group
+                return group
+        # No target_id → cannot group
+        return None
+    
+    def create_contribution_group(self, target_type: str, action: str, reference_lat: float = None, reference_lon: float = None, reference_stops: list = None, target_id: int = None):
+        group = ContributionGroup(
+            target_type=target_type,
+            action=action,
+            target_id=target_id,
+            reference_lat=reference_lat,
+            reference_lon=reference_lon,
+            reference_stops=reference_stops,
+            
+        )
+        self.db.add(group)
+        self.db.commit()
+        self.db.refresh(group)
+        return group
+    
+    def find_route_group(self, contribution_payload: dict, action: str, similarity_threshold: float = 0.7):
+        target_id = contribution_payload.get("target_id")
+        stops = contribution_payload.get("stops", [])
+
+        if action == "new" or not target_id:
+            return None
+        
+        query = (
+                    self.db.query(ContributionGroup)
+                    .filter(ContributionGroup.target_type == "route")
+                    .filter(ContributionGroup.action == action)
+                )
+        
+        if action == "delete" and target_id:
+            group = query.filter(ContributionGroup.target_id == target_id).first()
+            return group
+
+        # query by target_id instead of primary key
+        if action == "edit":
+            if not stops:
+                return None
+
+            group = query.filter(ContributionGroup.target_id == target_id).first()
+
+            if not group:
+                return None
+
+            reference_stops = getattr(group, "reference_stops", [])
+            intersection = len(set(reference_stops) & set(stops))
+            max_len = max(len(reference_stops), len(stops))
+            similarity = intersection / max_len if max_len > 0 else 0
+
+            if similarity >= similarity_threshold:
+                return group
+
+        return None

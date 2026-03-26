@@ -10,7 +10,7 @@ class GTFS(Base):
     __tablename__ = "gtfs_queue"
 
     id = Column(Integer, primary_key=True)
-    contribution_id = Column(Integer, ForeignKey("contributions.id"))
+    group_id = Column(Integer, ForeignKey("contribution_groups.id"), nullable=True) # Optional grouping for batch processing
     
     status = Column(
         Enum(
@@ -28,5 +28,5 @@ class GTFS(Base):
     processed_at = Column(DateTime, server_default=func.now())
 
     admin = relationship("Admin", back_populates="gtfs_queue")
-    contribution = relationship("Contribution", back_populates="gtfs_queue")
+    group = relationship("ContributionGroup", back_populates="gtfs_queue")
     
