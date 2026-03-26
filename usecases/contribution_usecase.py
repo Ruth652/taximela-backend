@@ -139,9 +139,6 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, ne
     if internal_uuid not in authrepo.get_super_admin_operational_admin_uuids(firebase_uids=[user_id]):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"You are not an operational admin user{internal_uuid}") 
    
-    print(internal_uuid)
-    print(user_id)
-     
     admin_id = authrepo.get_admin_id_by_user_id(internal_uuid)
     
     contribution = contribution_repo.get_contribution_by_id(contribution_id)
@@ -163,7 +160,34 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, ne
         user.rejection_streak_count = 0
 
         gtfs_repo = GTFSRepository(db)
-        gtfs_repo.add_to_gtfs_queue(db, contribution.id, admin_id)
+        
+        if contribution.target_type == "station":
+            group = contribution_repo.find_station_group(
+                contribution_payload=contribution.payload,
+                action=contribution.action,
+            )
+            if not group:
+                group = contribution_repo.create_contribution_group(
+                    target_type="station",
+                    action=contribution.action,
+                    reference_lat=contribution.payload.get("lat"),
+                    reference_lon=contribution.payload.get("lon")  ,
+                    target_id=contribution.target_id if contribution.target_id else None 
+                )
+        
+        elif contribution.target_type == "route":
+            group = contribution_repo.find_route_group(contribution.payload, contribution.action)
+            if not group:
+                group = contribution_repo.create_contribution_group(
+                    target_type="route",
+                    action=contribution.action,
+                    reference_stops=contribution.payload.get("stops"),
+                    target_id=contribution.target_id if contribution.target_id else None
+                )
+            
+           
+        contribution.group_id = group.id
+        gtfs_repo.add_to_gtfs_queue(db, group_id=group.id, queued_by=admin_id)
         
     elif new_status == "rejected":
         if user.rejection_streak_count == 0:

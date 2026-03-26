@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, DateTime, String, ForeignKey, Enum
+from sqlalchemy import Column, Index, Integer, Float, DateTime, String, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from infrastructure.database import Base
@@ -34,11 +34,13 @@ class Contribution(Base):
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    group_id = Column(Integer, ForeignKey("contribution_groups.id"), nullable=True) 
 
     user = relationship("User", back_populates="contributions")
-    gtfs_queue = relationship("GTFS", back_populates="contribution")
-    
-    
+    group = relationship("ContributionGroup", back_populates="contributions")
+
+
+
 class ContributionStatusEnum(str, enum.Enum):
     pending_review = "pending_review"
     approved = "approved"
