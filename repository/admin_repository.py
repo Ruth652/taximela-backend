@@ -86,8 +86,6 @@ class AdminRepository:
 
         if roles:
             query = query.filter(Admin.role.in_(roles))
-        else:
-            query = query.filter(Admin.role.in_(["business_admin", "operational_admin", "super_admin"]))
 
         total_count = query.count()
         offset = (page - 1) * limit

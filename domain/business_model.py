@@ -17,7 +17,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field, HttpUrl
+from enum import Enum
+from uuid import UUID as PyUUID
 
 
 from infrastructure.database import Base
@@ -49,7 +51,6 @@ class Business(Base):
 
     # Relationships
     owner = relationship("User", back_populates="businesses")
-    category = relationship("BusinessCategory")
     approved_by_admin = relationship("Admin")
  
     category = relationship("BusinessCategory", back_populates="businesses")
@@ -87,3 +88,18 @@ class BusinessInformation(BaseModel):
     updated_at: str
         
 
+class StatusEnum(str, Enum):
+    active = "active"
+    suspended = "suspended"
+
+class GetBusinessesParams(BaseModel):
+    status: Optional[StatusEnum] = Field(None)
+    page: int = Field(1, ge=1)
+    limit: int = Field(10, ge=1, le=100)
+
+class UpdateBusinessRequest(BaseModel):
+    business_name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    business_logo: Optional[HttpUrl] = None
+    category_id: Optional[PyUUID] = None
