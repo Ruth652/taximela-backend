@@ -31,7 +31,7 @@ def get_current_operational_admin(
     # Step 2: Get admin record
     admin = (
         db.query(Admin)
-        .filter(Admin.id == identity.entity_id)
+        .filter(Admin.user_id == identity. entity_id, Admin.is_active == True)
         .first()
     )
 
@@ -42,10 +42,10 @@ def get_current_operational_admin(
         )
 
     # Role check (only business and super admin can access)
-    if admin.role == "OPERATIONAL":  
+    if admin.role == "operational_admin":  
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient admin privileges",
+            detail="Insufficient admin privileges(only business and super admin have access)",
         )
 
     return admin

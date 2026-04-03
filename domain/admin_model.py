@@ -68,7 +68,7 @@ class AdminListQuery(BaseModel):
 
     @validator("role", each_item=True)
     def validate_role(cls, v):
-        allowed_roles = {"business_admin", "operational_admin"}
+        allowed_roles = {"business_admin", "operational_admin", "super_admin"}
         if v not in allowed_roles:
             raise ValueError(f"Role must be one of {allowed_roles}")
         return v
@@ -77,5 +77,5 @@ class AdminListQuery(BaseModel):
     def default_role(cls, v):
         # Default roles if none provided
         if not v:
-            return ["business_admin", "operational_admin"]
+            return ["business_admin", "operational_admin", "super_admin"]
         return v

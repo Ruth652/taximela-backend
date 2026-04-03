@@ -169,3 +169,41 @@ class BusinessRepository:
                 "items": items,
                 "next_cursor": next_cursor
             }
+    def get_my_businesses(self, user_id, status, page, limit):
+        query = self.db.query(Business).filter(
+            Business.owner_id == user_id
+        )
+
+        if status:
+            query = query.filter(Business.status == status)
+
+        total = query.count()
+
+        records = (
+            query.order_by(Business.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
+
+        return {
+            "data": [
+                {
+                    "id": b.id,
+                    "business_name": b.name,
+                    "business_logo": b.business_logo,
+                    "status": b.status
+                }
+                for b in records
+            ],
+            "total": total,
+            "page": page,
+            "limit": limit
+        }
+
+    def update_business(self, business, updates: dict):
+        for key, value in updates.items():
+            setattr(business, key, value)
+        self.db.commit()
+        self.db.refresh(business)
+        return business

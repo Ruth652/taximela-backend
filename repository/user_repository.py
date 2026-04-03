@@ -2,8 +2,10 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 from domain.admin_model import Admin
+from domain.auth_identity_model import AuthIdentity
 from domain.user_model import User
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import and_
 
 
 
@@ -36,6 +38,17 @@ class UserRepository:
         
         return user
     
+    def get_user_by_firebase_uid(self, firebase_uid: str):
+        return (
+            self.db.query(User)
+            .join(AuthIdentity, and_(
+                AuthIdentity.entity_id == User.id,
+                AuthIdentity.entity_type == "user"
+            ))
+            .filter(AuthIdentity.firebase_uid == firebase_uid)
+            .first()
+        )
+
     def update_user_profile(self, user_id, update_data: dict):
         from usecases.user_usecase import UserNotFoundError
         
