@@ -27,6 +27,16 @@ Admin.role.in_(["super_admin", "operational_admin"]),
         raise AdminPermissionsError("Admin access required.")
     return admin
 
+def list_admins_for_super_admin(
+    db,
+    firebase_uid: str,
+    page: int,
+    limit: int,
+    status: str = None,
+    roles=None
+):
+    admin_repo = AdminRepository(db)
+    return admin_repo.list_admins(page, limit, status, roles)
 
 def list_users_for_admin(db, firebase_uid: str, page: int, limit: int , status: str =None):
     verify_admin_permissions(db, firebase_uid)

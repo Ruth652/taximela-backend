@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
-from domain.admin_model import UpdateAdminRequest
-from infrastructure.database import get_db
+from domain.admin_model import UpdateAdminRequest, AdminListQuery
+from infrastructure.database import get_db 
 from infrastructure.auth.firebase_auth import get_current_firebase_user
 from usecases.admin_usecase import (
     delete_admin_usecase,
@@ -9,9 +9,11 @@ from usecases.admin_usecase import (
     update_admin_usecase,
     update_user_status_usecase,
     AdminPermissionsError,
-    UserNotFoundError
+    UserNotFoundError,
+    list_admins_for_super_admin
 )
 from pydantic import BaseModel
+from delivery.api.dependencies.admin_auth import verify_super_admin_permissions
 
 
 class UpdateStatusRequest(BaseModel):
@@ -31,6 +33,25 @@ async def list_users_controller(
     except AdminPermissionsError as e:
         raise HTTPException(status_code=403, detail=str(e))
 
+async def list_admins_controller(
+    query: AdminListQuery = Depends(),
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        firebase_uid = firebase_user["uid"]
+        verify_super_admin_permissions(db, firebase_uid)
+        return list_admins_for_super_admin(
+            db,
+            firebase_uid,
+            query.page,
+            query.limit,
+            query.status,
+            query.role
+        )
+
+    except AdminPermissionsError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 async def update_admin_controller(
     firebase_id: dict,
     admin_id: str,

@@ -11,6 +11,7 @@ from .admin_user_router import router as admin_user_router
 from .health import router as health_router
 from .admin_business_router import router as admin_business_router
 from .contribution_group_router import router as contribution_group_router
+from .service_provider_router import router as service_provider_router
 
 
 all_routers = [
@@ -26,5 +27,7 @@ all_routers = [
     {"router": admin_business_router, "prefix": ""},
     {"router": otp_router, "prefix": ""},
     {"router": contribution_group_router, "prefix": ""},
+    {"router": service_provider_router, "prefix": ""}
+
     
 ]

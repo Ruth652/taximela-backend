@@ -11,7 +11,8 @@ from delivery.api.controllers.admin_controllers import (
     delete_admin_controller,
     list_users_controller,
     update_admin_controller,
-    update_user_status_controller
+    update_user_status_controller,
+    list_admins_controller
 )
 
 router = APIRouter(
@@ -21,6 +22,10 @@ router = APIRouter(
 
 @router.get("/users")
 async def list_users(data=Depends(list_users_controller)):
+    return data
+
+@router.get("/admins")
+async def list_admins(data=Depends(list_admins_controller)):
     return data
 
 @router.patch("/users/{user_id}/status")

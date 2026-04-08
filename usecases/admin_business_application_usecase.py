@@ -2,7 +2,6 @@ from fastapi import HTTPException
 from repository.business_repository import BusinessRepository
 
 
-
 class AdminUsecase:
 
     def __init__(self, db):

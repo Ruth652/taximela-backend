@@ -5,6 +5,7 @@ from domain.user_model import User
 from datetime import datetime
 from domain.admin_model import Admin
 from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import IntegrityError
 
 
 
@@ -191,6 +192,81 @@ class  BusinessRegistrationRepository:
             "pending_businesses": pending_businesses,
             "rejected_businesses": rejected_businesses
         }
+    def create_registration(self, data: dict):
+        try:
+            registration = BusinessRegistration(**data)
+            self.db.add(registration)
+            self.db.commit()
+            self.db.refresh(registration)
+            return registration
 
+        except IntegrityError as ie:
+            self.db.rollback()
+            print("🔥 INTEGRITY ERROR:", ie)
+            raise Exception("Duplicate business registration detected")
 
+        except Exception as e:
+            self.db.rollback()  # Make sure to rollback on any error
+            print("🔥 DATABASE ERROR:", e)
+            raise e
+    def is_duplicate(self, user_id, business_name, category_id):
+        return (
+            self.db.query(BusinessRegistration)
+            .filter(
+                BusinessRegistration.user_id == user_id,
+                BusinessRegistration.business_name == business_name,
+                BusinessRegistration.category_id == category_id
+            )
+            .first()
+        )
 
+    def get_my_registrations(self, user_id, status, page, limit):
+        query = self.db.query(BusinessRegistration).filter(
+            BusinessRegistration.user_id == user_id
+        )
+
+        if status:
+            query = query.filter(BusinessRegistration.status == status)
+
+        total = query.count()
+
+        records = (
+            query.order_by(BusinessRegistration.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
+
+        return {
+            "data": [
+                {
+                    "id": r.id,
+                    "business_name": r.business_name,
+                    "status": r.status,
+                    "rejection_reason": r.rejection_reason
+                }
+                for r in records
+            ],
+            "total": total,
+            "page": page,
+            "limit": limit
+        }
+
+    def get_user_business_stats(self, user_id):
+        """
+        Returns a dashboard summary:
+        total_count, pending_application, accepted, rejected
+        """
+        query = self.db.query(BusinessRegistration).filter(BusinessRegistration.user_id == user_id)
+
+        total_count = query.count()
+        pending = query.filter(BusinessRegistration.status == "pending_review").count()
+        accepted = query.filter(BusinessRegistration.status == "approved").count()
+        rejected = query.filter(BusinessRegistration.status == "rejected").count()
+
+        return {
+            "total_count": total_count,
+            "pending_application": pending,
+            "accepted": accepted,
+            "rejected": rejected
+        }
