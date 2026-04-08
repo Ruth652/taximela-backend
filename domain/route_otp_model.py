@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Float, Integer, String
+from sqlalchemy.orm import relationship
 
 from infrastructure.otp_database import Base
 
@@ -9,11 +10,6 @@ class Routes(Base):
     route_id = Column(Integer, primary_key=True)
     route_short_name = Column(String)
     route_long_name = Column(String)
-    route_type = Column(Integer)    
+    route_type = Column(Integer, default=3)    
     
-# class UpdateRouteRequest(Base):
-#     __allow_unmapped = True
-#     route_short_name: str | None = None
-#     route_long_name: str | None = None
-#     route_type: int | None = None
-    
+    trips = relationship("Trips", back_populates="route")

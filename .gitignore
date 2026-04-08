@@ -9,3 +9,5 @@ otp.jar
 *firebase*.json
 taximela.db
 firebase_key.json
+alembic/
+alembic.ini

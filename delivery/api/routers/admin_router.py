@@ -18,7 +18,7 @@ async def approve_reject_contribution(
     data: ContributionUpdateSchema,
     id: str = Path(..., description="Contribution ID"),
     db: Session = Depends(get_db),
-    user:dict = Depends(verify_token)
+    user:dict = Depends(verify_token),
 ):
     try:
         result = await update_contribution_status_controller(

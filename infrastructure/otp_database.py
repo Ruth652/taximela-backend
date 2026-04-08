@@ -12,6 +12,7 @@ engine = create_engine(OTP_DATABASE_URL, echo=False)
 OTP_SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
 def get_otp_db():
     db = OTP_SessionLocal()
     try:
