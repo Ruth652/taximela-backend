@@ -12,7 +12,14 @@ from pydantic import ValidationError
 from delivery.api.routers import all_routers
 
 from infrastructure.database import Base, engine
-import domain
+
+from domain.stops_model import Stops
+from domain.stop_times_model import StopTimes
+from domain.transfers_model import Transfer
+from domain.trips_model import Trips    
+from domain.route_otp_model import Routes
+from domain.shape_model import Shapes
+from domain.calendar_model import Calendar
 
 def create_app() -> FastAPI:
     app = FastAPI(
