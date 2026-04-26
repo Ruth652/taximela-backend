@@ -22,28 +22,17 @@ def _is_valid_uuid(val: str) -> bool:
     except Exception:
         return False
 
-def get_my_contribution_stats(db, requested_user_uid: str, firebase_uid: str):
+def get_my_contribution_stats(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)
 
     internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
     if not internal_uuid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB")
-
-    try:
-        requested_uuid = UUID(requested_user_uid)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user UUID")
-
-    if requested_uuid != internal_uuid:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not allowed to access this resource"
-        )
-
+    # to do check if the id is commuter's or admin's or else return 401 again if necessary 
     repo = ContributionRepository(db)
     return repo.get_contribution_stats_by_user_uuid(internal_uuid)
 
-def get_contributions_by_user(db,requested_user_uid: str, firebase_uid: str, page: int, limit: int):
+def get_contributions_by_user(db, firebase_uid: str, page: int, limit: int):
     
     auth_repo = AuthIdentityRepository(db)
 
@@ -52,19 +41,7 @@ def get_contributions_by_user(db,requested_user_uid: str, firebase_uid: str, pag
     if not internal_uuid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB")
     
-   # to do check if the id is commuter's or admin's or else return 401 again if necessary 
-    print(f"Requested user UID: {requested_user_uid}, Internal UUID: {internal_uuid}")
-
-    try:
-        requested_uuid = UUID(requested_user_uid)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid user UUID")
-
-    if requested_uuid != internal_uuid:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not allowed to access this resource"
-        )
+    # to do check if the id is commuter's or admin's or else return 401 again if necessary   
     repo = ContributionRepository(db)
     return repo.get_contributions_by_user_uuid(internal_uuid, page, limit)
 
