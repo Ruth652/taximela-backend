@@ -2,6 +2,9 @@ from repository.business_registration_repository import BusinessRegistrationRepo
 from repository.business_category_repository import BusinessCategoryRepository
 from repository.business_repository import BusinessRepository
 from repository.user_repository import UserRepository
+from fastapi import HTTPException, status as http_status
+
+
 
 class ServiceProviderPermissionsError(Exception):
     pass
@@ -13,12 +16,17 @@ def create_business_registration_usecase(db, firebase_uid: str, request):
 
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
 
-    # if not user:
-    #    raise ServiceProviderPermissionsError("User not found")
-    
-    if not user.is_business_owner:
-        raise ServiceProviderPermissionsError("User does not have permission to register a business")
-    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    # if not user.is_business_owner:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Only business owners can access this endpoint"
+    #     )
     try:
         duplicate = business_repo.is_duplicate(
             user.id,
@@ -56,10 +64,17 @@ def get_my_applications_usecase(db, firebase_uid, status, page, limit):
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
 
     if not user:
-        raise Exception("User not found")
-    
-    # if not user.is_business_owner:
-    #     raise ServiceProviderPermissionsError("User does not have permission to register a business")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    if not user.is_business_owner:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Only business owners can access this endpoint"
+        )
+  
     return business_repo.get_my_registrations(
         user.id,
         status,
@@ -74,10 +89,16 @@ def get_my_application_usecase(db, firebase_uid, registration_id):
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
 
     if not user:
-        raise Exception("User not found")
-        
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
     # if not user.is_business_owner:
-    #     raise ServiceProviderPermissionsError("User does not have permission to register a business")
+    #     raise HTTPException(
+    #         status_code=http_status.HTTP_403_FORBIDDEN,
+    #         detail="Only business owners can access this endpoint"
+    #     )
 
     registration = business_repo.get_by_id(registration_id)
 
@@ -103,12 +124,17 @@ def get_my_businesses_usecase(db, firebase_uid, status, page, limit):
     business_repo = BusinessRepository(db)
 
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
-
     if not user:
-        raise Exception("User not found")
-    if not user.is_business_owner:
-        raise ServiceProviderPermissionsError("User does not have permission to register a business")
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
+    if not user.is_business_owner:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Only business owners can access this endpoint"
+        )
     return business_repo.get_my_businesses(
         user.id,
         status,
@@ -122,11 +148,16 @@ def get_business_by_id_usecase(db, firebase_uid, business_id):
 
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
     if not user:
-        raise Exception("User not found")
-    
-    if not user.is_business_owner:
-        raise ServiceProviderPermissionsError("User does not have permission to register a business")
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
+    if not user.is_business_owner:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Only business owners can access this endpoint"
+        )
     business = business_repo.get_business_by_id(business_id)
     if not business:
         raise Exception("Business not found")
@@ -167,12 +198,16 @@ def update_business_usecase(db, firebase_uid, business_id, payload):
 
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
     if not user:
-        raise Exception("User not found")
-    
-            
-    if not user.is_business_owner:
-        raise ServiceProviderPermissionsError("User does not have permission to register a business")
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
+    if not user.is_business_owner:
+        raise HTTPException(
+            status_code=http_status.HTTP_403_FORBIDDEN,
+            detail="Only business owners can access this endpoint"
+        )
     business = business_repo.get_business_by_id(business_id)
     if not business:
         raise Exception("Business not found")
@@ -218,9 +253,16 @@ def get_dashboard_summary_usecase(db, firebase_uid: str):
 
     user = user_repo.get_user_by_firebase_uid(firebase_uid)
     if not user:
-        raise ServiceProviderPermissionsError("User not found")
-    if not user.is_business_owner:
-        raise ServiceProviderPermissionsError("User does not have permission to register a business")
+        raise HTTPException(
+            status_code=http_status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
+    # if not user.is_business_owner:
+    #     raise HTTPException(
+    #         status_code=http_status.HTTP_403_FORBIDDEN,
+    #         detail="Only business owners can access this endpoint"
+    #     )
+   
     stats = business_repo.get_user_business_stats(user.id)
     return stats

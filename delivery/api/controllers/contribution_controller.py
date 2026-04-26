@@ -11,7 +11,7 @@ from usecases.contribution_usecase import submitContributionsUsecase, UpdateCont
 from sqlalchemy.orm import Session
 
 async def get_contribution_stats_controller(
-    user_id: str,
+    # user_id: str,
     firebase_user: dict = Depends(get_current_firebase_user),
     
     db: Session = Depends(get_db)
@@ -22,7 +22,7 @@ async def get_contribution_stats_controller(
     print(firebase_user)
 
     auth_user_id = firebase_user["uid"]
-    return get_my_contribution_stats(db, user_id, auth_user_id)
+    return get_my_contribution_stats(db,auth_user_id)
 
 async def submit_contribution(
     data: ContributeSchema,
@@ -34,7 +34,6 @@ async def submit_contribution(
     return await submitContributionsUsecase(data, firebase_uid, db)
 
 async def get_user_contributions_controller(
-    user_id:str,
     page:int = 1,
     limit:int = 10,
     firebase_user: dict = Depends(get_current_firebase_user),
@@ -42,7 +41,7 @@ async def get_user_contributions_controller(
 ):
 
     auth_user_id = firebase_user["uid"]
-    return get_contributions_by_user(db, user_id, auth_user_id, page, limit)
+    return get_contributions_by_user(db, auth_user_id, page, limit)
 
 async def update_contribution_status_controller(
     user_id: str,
