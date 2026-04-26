@@ -39,7 +39,7 @@ class Contribution(Base):
     user = relationship("User", back_populates="contributions")
     group = relationship("ContributionGroup", back_populates="contributions")
 
-
+ 
 
 class ContributionStatusEnum(str, enum.Enum):
     pending_review = "pending_review"

@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, Float, Integer, String, func, DateTime
+from sqlalchemy import JSON, Column, Float, Index, Integer, String, func, DateTime
 
 from infrastructure.database import Base
 from sqlalchemy.orm import relationship
@@ -23,5 +23,5 @@ class ContributionGroup(Base):
     contributions = relationship("Contribution", back_populates="group")
     gtfs_queue = relationship("GTFS", back_populates="group")
 
-    
+ 
     
