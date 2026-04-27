@@ -1,6 +1,10 @@
+from datetime import datetime, timedelta
+import uuid
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from domain.shape_model import Shapes
 from domain.stop_times_model import StopTimes
 from domain.trips_model import Trips
 from repository.contribution_group_repository import ContributionGroupRepository
@@ -81,7 +85,6 @@ class ContributionGroupUseCase:
             "contributions": contributions_data
         }
 
-    # ✅ APPROVE GROUP
     def approve_group(self, request: ApproveContributionGroupRequest):
         group = self.repo.get_group_by_id(request.group_id)
 
@@ -101,6 +104,7 @@ class ContributionGroupUseCase:
         try:
             handler(group, request.final_payload)
             self.otp_db.commit()
+            
         except Exception:
             self.otp_db.rollback()
             raise
@@ -150,11 +154,13 @@ class ContributionGroupUseCase:
 
             if "stop_lat" in data:
                 station.stop_lat = data["stop_lat"]
+                
             elif getattr(group, "reference_lat", None) is not None:
                 station.stop_lat = group.reference_lat
 
             if "stop_lon" in data:
                 station.stop_lon = data["stop_lon"]
+                
             elif getattr(group, "reference_lon", None) is not None:
                 station.stop_lon = group.reference_lon
                 
@@ -175,7 +181,6 @@ class ContributionGroupUseCase:
 
             # Collect affected trips
             affected_trip_ids = {st.trip_id for st in stop_times}
-            print(f"Affected trips: {affected_trip_ids}")
 
             for trip_id in affected_trip_ids:
 
@@ -183,7 +188,6 @@ class ContributionGroupUseCase:
                 trip_stop_times = db.query(StopTimes).filter(
                     StopTimes.trip_id == trip_id
                 ).order_by(StopTimes.stop_sequence).all()
-                print(f"Trip {trip_id} has {len(trip_stop_times)} stop_times before deletion")
 
                 total_stops = len(trip_stop_times)
 
@@ -239,23 +243,170 @@ class ContributionGroupUseCase:
             db.delete(station)
 
     def _handle_route(self, group, data: dict):
-        db = self.repo.db
+        db = self.otp_db
 
-        if group.action == "create":
-            db.add(Routes(**data))
+        if not data:
+            raise HTTPException(status_code=400, detail="No route data provided")
+        
+        if group.action in ["edit", "delete"] and not group.target_id:
+            raise HTTPException(status_code=400, detail="Target ID required for edit/delete")
+        
+        if group.action != "delete":
+            route_data = data.get("route")
+            trips_data = data.get("trips", [])
 
-        elif group.action == "update":
+            if not route_data:
+                raise HTTPException(status_code=400, detail="Route data missing")
+
+        # -------------------------
+        # CREATE ROUTE
+        # -------------------------
+        if group.action == "new":
+            route = Routes(
+                route_short_name=route_data.get("route_short_name"),
+                route_long_name=route_data.get("route_long_name"),
+                route_type=3
+            )
+            db.add(route)
+            db.flush()
+
+            route_id = route.route_id
+
+        # -------------------------
+        # EDIT ROUTE
+        # -------------------------
+        elif group.action == "edit":
             route = db.get(Routes, group.target_id)
 
             if not route:
                 raise HTTPException(status_code=404, detail="Route not found")
 
-            for key, value in data.items():
-                setattr(route, key, value)
+            route_id = route.route_id
 
+            # update basic fields only
+            if "route_short_name" in route_data:
+                route.route_short_name = route_data["route_short_name"]
+
+            if "route_long_name" in route_data:
+                route.route_long_name = route_data["route_long_name"]
+
+            # OPTIONAL: only rebuild trips if explicitly requested
+            if data.get("rebuild", False):
+                trips = db.query(Trips).filter(Trips.route_id == route_id).all()
+
+                shape_ids = set()
+
+                for trip in trips:
+                    shape_ids.add(trip.shape_id)
+
+                    db.query(StopTimes).filter(
+                        StopTimes.trip_id == trip.trip_id
+                    ).delete()
+
+                db.query(Trips).filter(Trips.route_id == route_id).delete()
+
+                db.query(Shapes).filter(
+                    Shapes.shape_id.in_(shape_ids)
+                ).delete(synchronize_session=False)
+
+        # -------------------------
+        # DELETE ROUTE
+        # -------------------------
         elif group.action == "delete":
             route = db.get(Routes, group.target_id)
 
-            if route:
-                pass
-                # db.delete(route)
+            if not route:
+                raise HTTPException(status_code=404, detail="Route not found")
+
+            route_id = route.route_id
+
+            trips = db.query(Trips).filter(Trips.route_id == route_id).all()
+
+            shape_ids = set()
+
+            for trip in trips:
+                shape_ids.add(trip.shape_id)
+
+                db.query(StopTimes).filter(
+                    StopTimes.trip_id == trip.trip_id
+                ).delete()
+
+            db.query(Trips).filter(Trips.route_id == route_id).delete()
+
+            db.query(Shapes).filter(
+                Shapes.shape_id.in_(shape_ids)
+            ).delete(synchronize_session=False)
+
+            db.delete(route)
+            return
+
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+
+        # -------------------------
+        # CREATE TRIPS (core logic)
+        # -------------------------
+        for trip_data in trips_data:
+            # ---- SHAPE (per trip or shared) ----
+            shape_points = trip_data.get("shape", [])
+
+            shape_id = None
+
+            if shape_points:
+                shape_id = str(uuid.uuid4())
+
+                for i, pt in enumerate(shape_points):
+                    db.add(Shapes(
+                        shape_id=shape_id,
+                        shape_pt_lat=pt["lat"],
+                        shape_pt_lon=pt["lon"],
+                        shape_pt_sequence=i + 1,
+                        shape_dist_traveled=pt.get("dist", 0)
+                    ))
+
+            # ---- CREATE TRIP ----
+            trip = Trips(
+                route_id=route_id,
+                service_id=trip_data.get("service_id", "everyday"),
+                trip_id=str(uuid.uuid4()),
+                trip_headsign=trip_data.get("headsign"),
+                shape_id=shape_id,
+                direction_id=trip_data.get("direction_id", 0)
+            )
+            db.add(trip)
+            db.flush()
+
+            trip_id = trip.trip_id
+
+            # ---- STOP TIMES (per trip) ----
+            stops = trip_data.get("stops", [])
+
+            if not stops:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Trip {trip_id} has no stops"
+                )
+           
+            interval = timedelta(minutes=10)
+            
+            prev_time = None
+
+            for i, stop in enumerate(stops):
+                if stop.get("arrival_time"):
+                    current_time = datetime.strptime(stop["arrival_time"], "%H:%M:%S")
+                else:
+                    if prev_time is None:
+                        current_time = datetime.strptime("06:00:00", "%H:%M:%S")
+                    else:
+                        current_time = prev_time + interval
+
+                time_str = current_time.strftime("%H:%M:%S")
+                prev_time = current_time
+
+                db.add(StopTimes(
+                    trip_id=trip_id,
+                    stop_id=stop["stop_id"],
+                    stop_sequence=i + 1,
+                    arrival_time=stop.get("arrival_time") or time_str,
+                    departure_time=stop.get("departure_time") or time_str
+                ))

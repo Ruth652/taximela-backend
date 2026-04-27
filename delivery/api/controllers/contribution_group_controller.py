@@ -57,7 +57,7 @@ class ContributionGroupController:
         if not admin:
             raise HTTPException(
                 status_code=Status.HTTP_403_FORBIDDEN,
-                detail="You are not authorized",
+                detail="You are not an authorized admin",
             )
 
         repo = ContributionGroupRepository(self.db)
