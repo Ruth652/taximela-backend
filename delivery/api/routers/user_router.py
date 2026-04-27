@@ -11,7 +11,7 @@ async def create_user(data=Depends(create_user_controller)):
 async def get_user(data=Depends(get_current_user_controller)):
     return data
 
-@router.put("/me")
+@router.patch("/me")
 async def update_user(data=Depends(update_current_user_controller)):
     return data
 

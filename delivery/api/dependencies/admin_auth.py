@@ -6,6 +6,7 @@ from infrastructure.auth.firebase_auth import get_current_firebase_user
 
 from domain.auth_identity_model import AuthIdentity
 from domain.admin_model import Admin
+from usecases.admin_usecase import AdminPermissionsError
 
 
 def get_current_operational_admin(
@@ -30,7 +31,7 @@ def get_current_operational_admin(
     # Step 2: Get admin record
     admin = (
         db.query(Admin)
-        .filter(Admin.id == identity.entity_id)
+        .filter(Admin.user_id == identity. entity_id, Admin.is_active == True)
         .first()
     )
 
@@ -41,10 +42,27 @@ def get_current_operational_admin(
         )
 
     # Role check (only business and super admin can access)
-    if admin.role == "OPERATIONAL":  
+    if admin.role == "operational_admin":  
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient admin privileges",
+            detail="Insufficient admin privileges(only business and super admin have access)",
         )
+
+    return admin
+
+def verify_super_admin_permissions(db: Session, firebase_uid: str):
+    from repository.admin_repository import AdminRepository
+
+    admin_repo = AdminRepository(db)
+    admin = admin_repo.get_admin_by_firebase_uid(firebase_uid)
+
+    if not admin:
+        raise AdminPermissionsError("Not an admin")
+
+    # if admin.role != "super_admin":
+    #     raise AdminPermissionsError("Only super admin can access this resource")
+
+    if not admin.is_active:
+        raise AdminPermissionsError("Admin account is inactive")
 
     return admin

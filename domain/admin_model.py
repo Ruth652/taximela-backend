@@ -50,3 +50,32 @@ class UpdateAdminRequest(BaseModel):
     updated_at: datetime | None = None # from the user model
     
     
+from typing import List, Optional
+from pydantic import BaseModel, validator
+
+class AdminListQuery(BaseModel):
+    page: int = 1
+    limit: int = 20
+    status: Optional[str] = None
+    role: Optional[List[str]] = None
+
+    @validator("status")
+    def validate_status(cls, v):
+        allowed_status = {"active", "suspended"}
+        if v is not None and v not in allowed_status:
+            raise ValueError(f"Status must be one of {allowed_status}")
+        return v
+
+    @validator("role", each_item=True)
+    def validate_role(cls, v):
+        allowed_roles = {"business_admin", "operational_admin", "super_admin"}
+        if v not in allowed_roles:
+            raise ValueError(f"Role must be one of {allowed_roles}")
+        return v
+
+    @validator("role", pre=True, always=True)
+    def default_role(cls, v):
+        # Default roles if none provided
+        if not v:
+            return ["business_admin", "operational_admin", "super_admin"]
+        return v

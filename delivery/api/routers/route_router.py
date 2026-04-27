@@ -1,15 +1,20 @@
 # delivery/api/routers/route_router.py
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
 from domain.route_model import PlanRequest
-from delivery.api.controllers.route_controller import plan_trip_controller
+from domain.service_places_model import AllRoutesServicePlacesRequest
+from domain.service_places_model import SingleRouteServicePlacesRequest
+from delivery.api.controllers.route_controller import (
+    plan_trip_controller,
+    all_routes_service_places_controller,
+    single_route_service_places_controller
+)
 from repository.auth_identity_repository import AuthIdentityRepository
 from infrastructure.database import get_db
-from sqlalchemy.orm import Session
-from infrastructure.auth.firebase_auth import get_current_firebase_user 
-from fastapi import Depends, HTTPException, status, Query
-
-from typing import List  
+from infrastructure.auth.firebase_auth import get_current_firebase_user
 
 router = APIRouter(prefix="/routes", tags=["routes"])
 
@@ -54,3 +59,36 @@ async def plan_trip(
         itineraries.sort(key=lambda x: x["totalTripTime"])
 
     return itineraries
+@router.post("/service-places/all")
+async def all_route_service_places(
+    data: AllRoutesServicePlacesRequest,
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    auth_repo = AuthIdentityRepository(db)
+
+    internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_user["uid"])
+    if not internal_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user not found in local DB"
+        )
+
+    return await all_routes_service_places_controller(data, db)
+
+@router.post("/service-places/single")
+async def single_route_service_places(
+    data: SingleRouteServicePlacesRequest,
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    auth_repo = AuthIdentityRepository(db)
+
+    internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_user["uid"])
+    if not internal_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user not found in local DB"
+        )
+
+    return await single_route_service_places_controller(data, db)
