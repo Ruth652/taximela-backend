@@ -98,7 +98,7 @@ async def GetContributionStatsAdmin(db, firebase_uid: str):
     return await repo.get_contribution_stats_for_all_users()
 
     
-async def submitContributionsUsecase(data: ContributeSchema, firebase_uid,db):
+async def submitContributionsUsecase(data: ContributeSchema, firebase_uid: str, db: Session):
     
     auth_repo = AuthIdentityRepository(db)
     internal_uuid = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)    
@@ -106,7 +106,7 @@ async def submitContributionsUsecase(data: ContributeSchema, firebase_uid,db):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authenticated user not found in local DB 2")
     
     if data.action != "new" and not data.target_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="target_id is required for update or delete actions")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="target_id is required for edit or delete actions")
     
     if data.target_type == "route":
         _validate_route(data)
