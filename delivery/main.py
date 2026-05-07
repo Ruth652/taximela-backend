@@ -12,6 +12,10 @@ from pydantic import ValidationError
 from delivery.api.routers import all_routers
 
 from infrastructure.database import Base, engine
+from infrastructure.scheduler_service import start_scheduler
+from usecases.rebuild_graph_usecase import RebuildGraphUseCase
+from infrastructure.database import get_db
+from infrastructure.otp_database import get_otp_db
 
 from domain.stops_model import Stops
 from domain.stop_times_model import StopTimes
@@ -20,6 +24,21 @@ from domain.trips_model import Trips
 from domain.route_otp_model import Routes
 from domain.shape_model import Shapes
 from domain.calendar_model import Calendar
+
+def scheduled_rebuild():
+    print("Running scheduled rebuild...")
+
+    # create fresh DB sessions
+    db = next(get_db())
+    otp_db = next(get_otp_db())
+
+    usecase = RebuildGraphUseCase(
+        db=db,
+        otp_db=otp_db,
+        user_id="system"
+    )
+
+    usecase.execute()
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -39,6 +58,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
 
     @app.exception_handler(RequestValidationError)
     async def request_validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -71,11 +91,16 @@ def create_app() -> FastAPI:
 
     for r in all_routers:
         app.include_router(r["router"], prefix = r["prefix"])
+        
+    @app.on_event("startup")
+    def startup_event():
+        start_scheduler(scheduled_rebuild)
     try:
         psycopg2.connect("postgresql://postgres:TaxiMela123@db.cldxkswkintnwktfjwrf.supabase.co:5432/postgres")
         print("OK")
     except Exception as e:
         print("ERR", e)
+        
 
     return app
 

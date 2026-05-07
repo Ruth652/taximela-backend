@@ -3,7 +3,6 @@ import csv
 import zipfile
 from sqlalchemy import text
 
-from repository.otp_repository import OTPRepository
 
 GTFS_STRUCTURE = {
     "agency": ["agency_id", "agency_name", "agency_url", "agency_timezone", "agency_lang"],
@@ -13,25 +12,29 @@ GTFS_STRUCTURE = {
     "stop_times": ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"],
     "calendar": ["service_id", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "start_date", "end_date"],
     "shapes": ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence", "shape_dist_traveled"],
-    "transfers": ["from_stop_id", "to_stop_id", "transfer_type", "min_transfer_time"],
+    "transfers": ["from_stop_id", "to_stop_id", "transfer_type", "min_transfer_time"]
 }
 
 
 class GTFSService:
+
     def __init__(self, otp_db):
         self.otp_db = otp_db
 
     def export_zip(self):
         zip_buffer = io.BytesIO()
 
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as z:
+        with zipfile.ZipFile(zip_buffer, "w") as z:
+
             for table, columns in GTFS_STRUCTURE.items():
+
                 result = self.otp_db.execute(text(f"SELECT * FROM {table}"))
                 rows = result.fetchall()
                 columns_db = result.keys()
 
                 output = io.StringIO()
                 writer = csv.writer(output)
+
                 writer.writerow(columns)
 
                 for row in rows:
@@ -42,21 +45,3 @@ class GTFSService:
 
         zip_buffer.seek(0)
         return zip_buffer.getvalue()
-    
-async def GetStopsUsecase(otp_db):
-    otp_repo = OTPRepository(otp_db)
-    return otp_repo.get_stops()
-
-async def GetStopsByIdUsecase(otp_db, stops_id: int):
-    otp_repo = OTPRepository(otp_db)
-    return otp_repo.get_stops_by_id(stops_id)
-
-async def GetRouteUsecase(otp_db):
-    otp_repo = OTPRepository(otp_db)
-    return otp_repo.get_routes()
-
-async def GetRouteByIdUsecase(otp_db, route_id: int):
-    otp_repo = OTPRepository(otp_db)
-    return otp_repo.get_routes_by_id(route_id)
-
-   
