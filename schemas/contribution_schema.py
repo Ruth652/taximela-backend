@@ -21,8 +21,6 @@ class ContributeSchema(BaseModel):
     end_stop_id: Optional[int] = None
     stops: Optional[List[int]] = None
 
-    trust_score_at_submit: Optional[float] = 0.0
-
 class ContributionStatus(str, Enum):
     approved = "approved"
     rejected = "rejected"

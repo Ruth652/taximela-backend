@@ -11,3 +11,7 @@ taximela.db
 firebase_key.json
 alembic/
 alembic.ini
+
+data/graph.obj
+data/gtfs.zip
+gtfs.zip

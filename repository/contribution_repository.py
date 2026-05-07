@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import func, case, select
 from domain.contribution_group_model import ContributionGroup
@@ -40,8 +42,9 @@ class ContributionRepository:
         }
 
     # --- Create a new contribution ---
-    def create_contribution(self, data, user_id: int):
+    def create_contribution(self, data, user_id: uuid.UUID):
         user = self.db.query(User).filter(User.id == user_id).first()
+        print(user.id)
         if not user:
             raise ValueError("User not found")
 
@@ -51,6 +54,7 @@ class ContributionRepository:
             target_id=data.target_id,
             payload=data.model_dump(),  # JSONB payload
             user_id=user_id,
+            trust_score_at_submit=user.rating_score,
             status="pending_review"
         )
 
