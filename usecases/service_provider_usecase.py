@@ -44,18 +44,23 @@ def create_business_registration_usecase(db, firebase_uid: str, request):
         raise ServiceProviderPermissionsError("Business already approved")
     if duplicate and duplicate.status == "rejected":
         pass
-    return business_repo.create_registration({
-        "user_id": user.id,
-        "business_name": request.business_name,
-        "latitude": request.latitude,
-        "longitude": request.longitude,
-        "government_id_fan": request.government_id_fan,
-        "government_id_photo_url": str(request.government_id_photo_url),
-        #"business_logo": str(request.business_logo),
-        "business_license_photo_url": str(request.business_license_photo_url),
-        "category_id": request.category_id,
-        "status": "pending_review"
-    })
+    registration = business_repo.create_registration({
+            "user_id": user.id,
+            "business_name": request.business_name,
+            "latitude": request.latitude,
+            "longitude": request.longitude,
+            "government_id_fan": request.government_id_fan,
+            "government_id_photo_url": str(request.government_id_photo_url),
+            "business_license_photo_url": str(request.business_license_photo_url),
+            "category_id": request.category_id,
+            "status": "pending_review"
+        })
+
+    if not user.is_business_owner:
+        print(f"--- [TaxiMela] First registration detected. Promoting User {user.id} ---")
+        user_repo.promote_to_business_owner(user)
+
+    return registration
 
 def get_my_applications_usecase(db, firebase_uid, status, page, limit):
     user_repo = UserRepository(db)

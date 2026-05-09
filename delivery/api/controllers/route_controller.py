@@ -1,9 +1,10 @@
 from usecases.route_usecase import get_transformed_trip_plan
 from usecases.route_service_places_usecase import get_all_routes_service_places
 from infrastructure.utils.route_geometry import build_routes_wkt
+from sqlalchemy.orm import Session
 
-async def plan_trip_controller(request_data):
-    return await get_transformed_trip_plan(request_data)
+async def plan_trip_controller(request_data, db: Session):
+    return await get_transformed_trip_plan(request_data, db)
 
 async def all_routes_service_places_controller(request_data, db):
 
