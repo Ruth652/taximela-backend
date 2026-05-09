@@ -41,7 +41,7 @@ async def plan_trip(
         )
 
  
-    itineraries = await plan_trip_controller(data)
+    itineraries = await plan_trip_controller(data, db)
 
     #sorting
     if sortby == "price":

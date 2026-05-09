@@ -11,6 +11,7 @@ from .business_model import Business
 from .business_registration_model import BusinessRegistration
 from .business_category_model import BusinessCategory
 from .admin_model import Admin
+from .fare_configurations_model import FareConfiguration
 
 # User.contributions = relationship(
 #     "Contribution", 
