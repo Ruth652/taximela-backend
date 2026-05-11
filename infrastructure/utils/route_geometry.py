@@ -49,8 +49,8 @@ def build_routes_wkt(itineraries):
     all_lines = []
 
     for itinerary in itineraries:
-        for leg in itinerary["tripDetail"]:
-            polyline = leg["encryptedGeolocation"]
+        for leg in itinerary.tripDetail:
+            polyline = leg.encryptedGeolocation
             coords = decode_polyline(polyline)
 
             if len(coords) < 2:
