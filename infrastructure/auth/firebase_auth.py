@@ -52,7 +52,7 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
             display_name=display_name
         )
         return user
-    
+
     except auth.EmailAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -63,6 +63,34 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Firebase error: {str(e)}"
+        )
+
+
+def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
+    """
+    Sets custom claims on a Firebase user (e.g. {"role": "operational_admin"}).
+    These claims are embedded in the user's JWT on next token refresh.
+    """
+    try:
+        auth.set_custom_user_claims(firebase_uid, claims)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to set custom claims: {str(e)}"
+        )
+
+
+def generate_password_reset_link(email: str) -> str:
+    """
+    Generates a Firebase password-reset link for the given email.
+    Used to let a newly created admin set their own password.
+    """
+    try:
+        return auth.generate_password_reset_link(email)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate password reset link: {str(e)}"
         )
 
  

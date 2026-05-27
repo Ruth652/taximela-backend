@@ -4,7 +4,15 @@ from domain.admin_model import CreateAdminRequest
 from infrastructure.database import get_db
 from domain.user_model import UpdateUserRequest, CreateUserRequest
 from infrastructure.auth.firebase_auth import create_firebase_user, get_current_firebase_user
-from usecases.user_usecase import create_admin_first_login, create_user_first_login, get_current_user, UserNotFoundError, NoUpdateFieldsError, update_current_user
+from usecases.user_usecase import (
+    create_admin_first_login,
+    create_user_first_login,
+    get_current_user,
+    update_current_user,
+    UserNotFoundError,
+    NoUpdateFieldsError,
+    PermissionDeniedError,
+)
 
 
 async def create_user_controller(
@@ -21,18 +29,23 @@ async def create_user_controller(
         payload=payload.dict()
     )
 async def create_admin_controller(
-    payload:CreateAdminRequest | None,
+    payload: CreateAdminRequest | None,
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
     auth_user_id = firebase_user["uid"]
-    
-    return create_admin_first_login(
-        db=db,
-        creator_firebase_uid=auth_user_id,
-        new_user=payload,  
-        create_firebase_user=create_firebase_user      
-    )
+
+    try:
+        return create_admin_first_login(
+            db=db,
+            creator_firebase_uid=auth_user_id,
+            new_user=payload,
+            create_firebase_user=create_firebase_user
+        )
+    except UserNotFoundError:
+        raise HTTPException(status_code=401, detail="Authenticated user not found in local DB")
+    except PermissionDeniedError:
+        raise HTTPException(status_code=403, detail="Only super admins can create new admins")
     
    
    
