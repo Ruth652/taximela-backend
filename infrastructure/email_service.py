@@ -1,18 +1,17 @@
 import os
-import resend
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
-resend.api_key = os.getenv("RESEND_API_KEY")
-
-FROM_EMAIL = "onboarding@resend.dev"
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+FROM_EMAIL = "taximela.app@gmail.com"
+FROM_NAME = "Taximela Admin"
 
 
 def send_admin_invite_email(to: str, full_name: str, role: str, reset_link: str) -> None:
     """
-    Sends a branded TaxiMela admin invitation email with a password-setup link via Resend.
-    Note: Without a verified domain, emails can only be sent to the Resend account owner's email.
+    Sends a branded Taximela admin invitation email with a password-setup link via Brevo.
     """
 
     role_display = {
@@ -26,7 +25,7 @@ def send_admin_invite_email(to: str, full_name: str, role: str, reset_link: str)
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TaxiMela Admin Invite</title>
+  <title>Taximela Admin Invite</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Space+Mono&display=swap" rel="stylesheet"/>
   <style>
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -144,10 +143,19 @@ def send_admin_invite_email(to: str, full_name: str, role: str, reset_link: str)
 </body>
 </html>"""
 
-    params: resend.Emails.SendParams = {
-        "from": f"Taximela Admin <{FROM_EMAIL}>",
-        "to": [to],
-        "subject": "You've been added to Taximela — Set up your password",
-        "html": html_body,
-    }
-    resend.Emails.send(params)
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "api-key": BREVO_API_KEY,
+            "Content-Type": "application/json",
+        },
+        json={
+            "sender": {"name": FROM_NAME, "email": FROM_EMAIL},
+            "to": [{"email": to, "name": full_name}],
+            "subject": "You've been added to Taximela — Set up your password",
+            "htmlContent": html_body,
+        },
+    )
+
+    if response.status_code not in (200, 201):
+        raise Exception(f"Brevo email failed: {response.status_code} {response.text}")
