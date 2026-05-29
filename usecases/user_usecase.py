@@ -1,8 +1,13 @@
+import secrets
+
 from sqlalchemy.exc import IntegrityError
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 from uuid import uuid4
 from infrastructure.config.supabase_client import supabase
+from infrastructure.auth.firebase_auth import set_firebase_custom_claims, generate_password_reset_link
+from infrastructure.email_service import send_admin_invite_email
+
 
 class UserNotFoundError(Exception): pass
 class NoUpdateFieldsError(Exception): pass
@@ -78,40 +83,65 @@ def create_admin_first_login(
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
+    # 1. Verify the creator exists and is a super_admin
     creator_user_id = auth_repo.get_user_uuid_by_firebase_uid(creator_firebase_uid)
     if not creator_user_id:
         raise UserNotFoundError()
 
     if not auth_repo.get_super_admin_uuid_by_firebase_uid([creator_firebase_uid]):
         raise PermissionDeniedError()
-    
+
     creator_admin_id = auth_repo.get_admin_id_by_user_id(creator_user_id)
     if not creator_admin_id:
         raise PermissionDeniedError()
-    
+
+    # 2. Generate a secure random temporary password (admin will replace via email link)
+    temp_password = secrets.token_urlsafe(16)
+
+    # 3. Create the Firebase user with the temp password
     firebase = create_firebase_user(
         email=new_user.email,
-        password="DefaultPassword123!",  
+
+        password=temp_password,
         display_name=new_user.full_name
-    ) 
+    )
+
+    # 4. Set the admin role as a custom claim on the Firebase token
+    set_firebase_custom_claims(firebase.uid, {"role": new_user.role.value})
+
+    # 5. Generate a password-reset link so the admin can set their own password
+    reset_link = generate_password_reset_link(new_user.email)
+
+    # 6. Create the user record in the main DB
     user = user_repo.create_user(
         email=new_user.email,
         full_name=new_user.full_name,
         preferred_language="en",
     )
+
+    # 7. Map Firebase UID → internal user ID
     auth_repo.create_auth_identity(
         firebase_uid=firebase.uid,
         entity_type="admin",
-        entity_id=user.id 
+        entity_id=user.id
     )
-        
+
+    # 8. Promote the user to admin with the specified role
     user_repo.promote_to_admin(
         user.id,
         role=new_user.role,
         created_by=creator_admin_id
     )
-        
+
     db.commit()
+
+    # 9. Send the branded invitation email with the password-setup link
+    send_admin_invite_email(
+        to=new_user.email,
+        full_name=new_user.full_name,
+        role=new_user.role.value,
+        reset_link=reset_link,
+    )
 
     return {
         "id": user.id,
