@@ -1,6 +1,8 @@
 from sqlalchemy.exc import IntegrityError
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
+from uuid import uuid4
+from infrastructure.config.supabase_client import supabase
 
 class UserNotFoundError(Exception): pass
 class NoUpdateFieldsError(Exception): pass
@@ -53,7 +55,7 @@ def create_user_first_login(
 
     user_id = user.id
 
-    # 4️ Create auth identity mapping
+    
     auth_repo.create_auth_identity(
         firebase_uid=firebase_uid,
         entity_id=user_id,
@@ -89,7 +91,7 @@ def create_admin_first_login(
     
     firebase = create_firebase_user(
         email=new_user.email,
-        password="DefaultPassword123!",  # In production, generate a secure random password and communicate it securely
+        password="DefaultPassword123!",  
         display_name=new_user.full_name
     ) 
     user = user_repo.create_user(
@@ -130,27 +132,49 @@ def get_current_user(db, firebase_uid: str):
     return user_repo.get_user_by_id(user_id)
 
 
-def update_current_user(db, firebase_uid: str, payload):
+async def update_current_user(
+    db,
+    firebase_uid: str,
+    full_name=None,
+    preferred_language=None,
+    profile_picture=None
+):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
     user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+
     if not user_id:
         raise UserNotFoundError()
 
-    allowed_fields = {
-        "full_name",
-        "preferred_language",
-        "profile_picture_url"
-    }
+    update_data = {}
 
-    raw = payload.dict() if hasattr(payload, "dict") else dict(payload)
+    if full_name is not None:
+        update_data["full_name"] = full_name
 
-    update_data = {
-        key: value
-        for key, value in raw.items()
-        if key in allowed_fields and value is not None
-    }
+    if preferred_language is not None:
+        update_data["preferred_language"] = preferred_language
+
+   
+    if profile_picture is not None:
+
+        file_bytes = await profile_picture.read()
+
+        file_name = f"{user_id}-{uuid4()}.png"
+
+        supabase.storage.from_("profile-pictures").upload(
+            path=file_name,
+            file=file_bytes,
+            file_options={
+                "content-type": profile_picture.content_type
+            }
+        )
+
+        image_url = supabase.storage.from_(
+            "profile-pictures"
+        ).get_public_url(file_name)
+
+        update_data["profile_picture_url"] = image_url
 
     if not update_data:
         raise NoUpdateFieldsError()

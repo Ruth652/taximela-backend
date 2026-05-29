@@ -73,11 +73,11 @@ class UpdateUserRequest(BaseModel):
         None, 
         description="Language preference: 'en' for English, 'am' for Amharic"
     )
-    profile_picture_url: Optional[str] = Field(
-        None, 
-        max_length=500, 
-        description="URL to the user's profile picture"
-    )
+    # profile_picture_url: Optional[str] = Field(
+    #     None, 
+    #     max_length=500, 
+    #     description="URL to the user's profile picture"
+    # )
 
     @validator("preferred_language")
     def validate_language(cls, v):
