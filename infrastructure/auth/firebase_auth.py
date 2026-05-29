@@ -72,16 +72,27 @@
 
 import firebase_admin
 import os
+import json
 from firebase_admin import auth, credentials
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from dotenv import load_dotenv
 
-# Initialize Firebase app only once
+load_dotenv()
 
-FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
 if not firebase_admin._apps:
-    cred = credentials.Certificate(FIREBASE_CREDENTIALS)
+    firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
+
+    if firebase_credentials:
+        # Production: FIREBASE_CREDENTIALS is a JSON string
+        cred_dict = json.loads(firebase_credentials)
+        cred = credentials.Certificate(cred_dict)
+    else:
+        # Development: use local firebase_key.json file
+        cred = credentials.Certificate("firebase_key.json")
+
     firebase_admin.initialize_app(cred)
+    print("Running in:", os.getenv("ENV", "development"))
 
 security = HTTPBearer()
 
