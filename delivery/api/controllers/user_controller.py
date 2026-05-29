@@ -1,5 +1,4 @@
-from fastapi import Depends, HTTPException, UploadFile, Form, File
-from typing import Optional
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from domain.admin_model import CreateAdminRequest
 from infrastructure.database import get_db
@@ -16,9 +15,8 @@ from usecases.user_usecase import (
 )
 
 
-
 async def create_user_controller(
-    payload:CreateUserRequest | None,
+    payload: CreateUserRequest | None,
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
@@ -30,6 +28,8 @@ async def create_user_controller(
         email=email,
         payload=payload.dict()
     )
+
+
 async def create_admin_controller(
     payload: CreateAdminRequest | None,
     firebase_user: dict = Depends(get_current_firebase_user),
@@ -48,9 +48,8 @@ async def create_admin_controller(
         raise HTTPException(status_code=401, detail="Authenticated user not found in local DB")
     except PermissionDeniedError:
         raise HTTPException(status_code=403, detail="Only super admins can create new admins")
-    
-   
-   
+
+
 async def get_current_user_controller(
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
@@ -60,34 +59,22 @@ async def get_current_user_controller(
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     return user
 
+
 async def update_current_user_controller(
-    full_name: Optional[str] = Form(None),
-    preferred_language: Optional[str] = Form(None),
-    profile_picture: Optional[UploadFile] = File(None),
+    payload: UpdateUserRequest,
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
     firebase_uid = firebase_user["uid"]
 
     try:
-        updated_user = await update_current_user(
-            db=db,
-            firebase_uid=firebase_uid,
-            full_name=full_name,
-            preferred_language=preferred_language,
-            profile_picture=profile_picture
-        )
-
+        updated_user = update_current_user(db, firebase_uid, payload)
     except UserNotFoundError:
         raise HTTPException(404, "User not found")
-
     except NoUpdateFieldsError:
         raise HTTPException(400, "No valid fields provided")
 
-    return {
-        "message": "Profile updated successfully",
-        "user": updated_user
-    }
+    return {"message": "Profile updated successfully", "user": updated_user}
