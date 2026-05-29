@@ -1,4 +1,5 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, UploadFile, Form, File
+from typing import Optional
 from sqlalchemy.orm import Session
 from domain.admin_model import CreateAdminRequest
 from infrastructure.database import get_db
@@ -13,6 +14,7 @@ from usecases.user_usecase import (
     NoUpdateFieldsError,
     PermissionDeniedError,
 )
+
 
 
 async def create_user_controller(
@@ -62,18 +64,30 @@ async def get_current_user_controller(
     return user
 
 async def update_current_user_controller(
-    payload: UpdateUserRequest,
+    full_name: Optional[str] = Form(None),
+    preferred_language: Optional[str] = Form(None),
+    profile_picture: Optional[UploadFile] = File(None),
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
     firebase_uid = firebase_user["uid"]
-    
+
     try:
-        updated_user = update_current_user(db, firebase_uid, payload)
+        updated_user = await update_current_user(
+            db=db,
+            firebase_uid=firebase_uid,
+            full_name=full_name,
+            preferred_language=preferred_language,
+            profile_picture=profile_picture
+        )
+
     except UserNotFoundError:
         raise HTTPException(404, "User not found")
+
     except NoUpdateFieldsError:
         raise HTTPException(400, "No valid fields provided")
 
-    return {"message": "Profile updated successfully", "user": updated_user}
-
+    return {
+        "message": "Profile updated successfully",
+        "user": updated_user
+    }
