@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 from uuid import uuid4
-from infrastructure.config.supabase_client import supabase
+from infrastructure.config.cloudinary import upload_profile_image
 from infrastructure.auth.firebase_auth import set_firebase_custom_claims, generate_password_reset_link
 from infrastructure.email_service import send_admin_invite_email
 
@@ -161,7 +161,6 @@ def get_current_user(db, firebase_uid: str):
 
     return user_repo.get_user_by_id(user_id)
 
-
 async def update_current_user(
     db,
     firebase_uid: str,
@@ -185,24 +184,9 @@ async def update_current_user(
     if preferred_language is not None:
         update_data["preferred_language"] = preferred_language
 
-   
     if profile_picture is not None:
 
-        file_bytes = await profile_picture.read()
-
-        file_name = f"{user_id}-{uuid4()}.png"
-
-        supabase.storage.from_("profile-pictures").upload(
-            path=file_name,
-            file=file_bytes,
-            file_options={
-                "content-type": profile_picture.content_type
-            }
-        )
-
-        image_url = supabase.storage.from_(
-            "profile-pictures"
-        ).get_public_url(file_name)
+        image_url = upload_profile_image(profile_picture)
 
         update_data["profile_picture_url"] = image_url
 

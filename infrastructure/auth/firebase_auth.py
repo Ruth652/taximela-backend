@@ -64,8 +64,7 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Firebase error: {str(e)}"
         )
-
-
+ 
 
 def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
     """
