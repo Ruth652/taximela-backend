@@ -40,6 +40,7 @@ class User(Base):
     is_commuter = Column(Boolean, nullable=False, default=False)
     is_business_owner = Column(Boolean, nullable=False, default=False)
 
+    fcm_token = Column(String(255), nullable=True)
     deleted_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
@@ -105,7 +106,11 @@ class CreateUserRequest(BaseModel):
         False,
         description="Indicates whether the user is a business owner"
     )
-
+    fcm_token: Optional[str] = Field(
+        None,
+        max_length=255,
+        description="FCM token for push notifications"
+    )
 
     @validator("preferred_language")
     def validate_language(cls, v):

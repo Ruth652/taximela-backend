@@ -14,26 +14,31 @@ async def create_user_controller(
 ):
     auth_user_id = firebase_user["uid"]
     email = firebase_user["email"]
+    fcm_token = payload.fcm_token if payload else None
+
     return create_user_first_login(
         db=db,
         firebase_uid=auth_user_id,
         email=email,
-        payload=payload.dict()
+        payload=payload.dict(),
+        fcm_token=fcm_token
     )
+    
 async def create_admin_controller(
     payload:CreateAdminRequest | None,
     firebase_user: dict = Depends(get_current_firebase_user),
     db: Session = Depends(get_db)
 ):
     auth_user_id = firebase_user["uid"]
-    
+    fcm_token = payload.fcm_token if payload else None
+
     return create_admin_first_login(
         db=db,
         creator_firebase_uid=auth_user_id,
         new_user=payload,  
-        create_firebase_user=create_firebase_user      
+        create_firebase_user=create_firebase_user,
+        fcm_token=fcm_token
     )
-    
    
    
 async def get_current_user_controller(

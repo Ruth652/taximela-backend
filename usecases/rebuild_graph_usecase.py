@@ -1,6 +1,7 @@
 import os
 import subprocess
 import shutil
+from wsgiref import headers
 import requests
 import zipfile
 import tempfile
@@ -25,7 +26,7 @@ class RebuildGraphUseCase:
         zip_path = self.export_gtfs()
         self.update_repo_gtfs(zip_path)
         self.commit_and_push()
-        self.trigger_render_deploy()
+        # self.trigger_railway_deploy()
 
         print("✅ Full pipeline completed.")
 
@@ -93,15 +94,25 @@ class RebuildGraphUseCase:
         run(["git", "push", "origin", self.branch])
         print("📤 Pushed GTFS to otp-deploy-clean")
 
-    # 4. TRIGGER RENDER DEPLOY
-    def trigger_render_deploy(self):
-        print("🚀 Triggering Render deploy...")
+    # 4. TRIGGER RAILWAY DEPLOY
+    # def trigger_railway_deploy(self):
+    #     print("🚀 Triggering Railway deploy...")
 
-        response = requests.post(
-            "https://api.render.com/deploy/srv-d70088fkijhs73d41h00?key=mLVbAyCll8Q"
-        )
+    #     headers = {
+    #     "Authorization": f"Bearer {RAILWAY_TOKEN}",
+    #     "Content-Type": "application/json"
+    # }
 
-        if response.status_code == 200:
-            print("✅ Render deploy triggered")
-        else:
-            print("❌ Render deploy failed:", response.text)
+    #     response = requests.post(
+    #         "RAILWAY_DEPLOYMENT_ENDPOINT",
+    #         headers=headers,
+    #         json={
+    #             "project_id": "your_project_id",
+    #             "environment_id": "your_environment_id",
+    #             "service_id": "your_service_id"
+    #         }
+    #     )
+    #     if response.status_code == 200:
+    #         print("✅ Railway deploy triggered")
+    #     else:
+    #         print("❌ Railway deploy failed:", response.text)
