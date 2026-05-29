@@ -18,7 +18,7 @@ def create_business_registration_usecase(db, firebase_uid: str, request):
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
@@ -70,16 +70,19 @@ def get_my_applications_usecase(db, firebase_uid, status, page, limit):
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=http_status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
 
     if not user.is_business_owner:
-        raise HTTPException(
-            status_code=http_status.HTTP_403_FORBIDDEN,
-            detail="Only business owners can access this endpoint"
-        )
-  
+        # Return empty list instead of 403 — user simply has no registrations yet
+        return {
+            "data": [],
+            "page": page,
+            "limit": limit,
+            "total": 0
+        }
+
     return business_repo.get_my_registrations(
         user.id,
         status,
