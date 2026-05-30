@@ -13,6 +13,9 @@ from datetime import date
 class UserNotFoundError(Exception): pass
 class NoUpdateFieldsError(Exception): pass
 class PermissionDeniedError(Exception): pass
+class InvalidFullNameError(Exception): pass
+class InvalidLanguageError(Exception): pass
+
 
 
 # =========================
@@ -204,16 +207,33 @@ async def update_current_user(
     update_data = {}
 
     if full_name is not None:
+        full_name = full_name.strip()
+
+        if full_name.lower() == "string":
+            raise InvalidFullNameError("Full name cannot be 'string'")
+        
+        if len(full_name) < 3 or len(full_name) > 100:
+            raise InvalidFullNameError("Full name must be between 3 and 100 characters")
         update_data["full_name"] = full_name
-
     if preferred_language is not None:
-        update_data["preferred_language"] = preferred_language
+        preferred_language = preferred_language.strip().lower()
 
+        if preferred_language == "string":
+            raise InvalidLanguageError(
+                "Preferred language must be 'en' or 'am'"
+            )
+
+        if preferred_language not in {"en", "am"}:
+            raise InvalidLanguageError(
+                "Preferred language must be 'en' or 'am'"
+            )
     if profile_picture is not None:
 
         image_url = upload_profile_image(profile_picture)
 
         update_data["profile_picture_url"] = image_url
+
+        update_data["preferred_language"] = preferred_language
 
     if not update_data:
         raise NoUpdateFieldsError()
