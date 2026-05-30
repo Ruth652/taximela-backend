@@ -24,6 +24,7 @@ from domain.trips_model import Trips
 from domain.route_otp_model import Routes
 from domain.shape_model import Shapes
 from domain.calendar_model import Calendar
+from domain.notification_model import Notification
 
 def scheduled_rebuild():
     print("Running scheduled rebuild...")

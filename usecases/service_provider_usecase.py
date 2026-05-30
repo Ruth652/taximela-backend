@@ -3,6 +3,7 @@ from repository.business_category_repository import BusinessCategoryRepository
 from repository.business_repository import BusinessRepository
 from repository.user_repository import UserRepository
 from fastapi import HTTPException, status as http_status
+from services.notification_service import NotificationService
 
 
 
@@ -59,6 +60,15 @@ def create_business_registration_usecase(db, firebase_uid: str, request):
     if not user.is_business_owner:
         print(f"--- [TaxiMela] First registration detected. Promoting User {user.id} ---")
         user_repo.promote_to_business_owner(user)
+
+    # Notify admins of new business registration
+    try:
+        NotificationService(db).notify(
+            event="business_application",
+            message=f"New business registration: {request.business_name}",
+        )
+    except Exception:
+        pass
 
     return registration
 

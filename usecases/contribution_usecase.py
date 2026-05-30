@@ -7,12 +7,9 @@ from repository.auth_identity_repository import AuthIdentityRepository
 from repository.contribution_repository import ContributionRepository
 from repository.user_repository import UserRepository
 from fastapi import HTTPException, status
-
-# from domain.contribution_model import Contribute
-
+from services.notification_service import NotificationService
 
 import uuid
-
 from schemas.contribution_schema import ContributeSchema
 
 def _is_valid_uuid(val: str) -> bool:
@@ -91,7 +88,18 @@ async def submitContributionsUsecase(data: ContributeSchema, firebase_uid: str, 
         _validate_station(data)
         
     repo = ContributionRepository(db)
-    return repo.create_contribution(data, internal_uuid)
+    result = repo.create_contribution(data, internal_uuid)
+
+    # Notify admins of new contribution
+    try:
+        NotificationService(db).notify(
+            event="contribution_new",
+            message=f"A new {data.target_type} contribution was submitted",
+        )
+    except Exception:
+        pass
+
+    return result
 
 
 async def GetPreviousContributionStatus(user_id, db):
@@ -183,6 +191,16 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, ne
     db.commit()
     db.refresh(contribution)
     db.refresh(user)
+
+    # Notify admins of contribution status change
+    try:
+        event = "contribution_approved" if new_status == "approved" else "contribution_rejected"
+        NotificationService(db).notify(
+            event=event,
+            message=f"Contribution #{contribution_id} was {new_status}",
+        )
+    except Exception:
+        pass
 
     return {
         "message": "Contribution status updated successfully",

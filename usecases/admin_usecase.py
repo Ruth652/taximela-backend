@@ -2,6 +2,7 @@ from repository.admin_repository import AdminRepository
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 from domain.admin_model import Admin, UpdateAdminRequest
+from services.notification_service import NotificationService
 
 
 class AdminPermissionsError(Exception):
@@ -52,7 +53,18 @@ def update_user_status_usecase(db, firebase_uid: str, user_id: int, new_status: 
 
     if not user:
         raise UserNotFoundError("User not found.")
-    return user 
+
+    # Notify admins if user was suspended
+    try:
+        if new_status == "suspended":
+            NotificationService(db).notify(
+                event="user_suspended",
+                message=f"User {user_id} has been suspended",
+            )
+    except Exception:
+        pass
+
+    return user
 
 
 def update_admin_usecase(db, firebase_uid: str, admin_id: str, payload: UpdateAdminRequest):
@@ -103,6 +115,15 @@ def delete_admin_usecase(db, firebase_uid: str, admin_id: str):
 
     if not admin:
         raise UserNotFoundError("Admin not found.")
-    
+
+    # Notify super_admins that an admin was removed
+    try:
+        NotificationService(db).notify(
+            event="admin_removed",
+            message=f"Admin {admin_id} has been removed",
+        )
+    except Exception:
+        pass
+
     return admin
 
