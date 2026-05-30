@@ -98,13 +98,22 @@ class RebuildGraphUseCase:
             shutil.rmtree(repo_dir)
             return
 
-        subprocess.run(
+        result = subprocess.run(
             ["git", "push", "origin", "otp-deploy-clean"],
             cwd=repo_dir,
-            check=True
+            capture_output=True,
+            text=True
         )
+        
+        print("STDOUT:\n", result.stdout)
+        print("STDERR:\n", result.stderr)
 
-        print("🚀 Pushed → Railway will auto-deploy")
+        if result.returncode != 0:
+            raise Exception(
+                f"Git push failed\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+            )
+        
+                print("🚀 Pushed → Railway will auto-deploy")
 
         shutil.rmtree(repo_dir)
     # 4. TRIGGER RAILWAY DEPLOY
