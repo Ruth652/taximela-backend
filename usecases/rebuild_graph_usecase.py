@@ -1,8 +1,6 @@
 import os
 import subprocess
 import shutil
-from wsgiref import headers
-import requests
 import zipfile
 import tempfile
 
@@ -13,17 +11,14 @@ class RebuildGraphUseCase:
 
     def __init__(self, db, otp_db, user_id):
         token = os.environ["GITHUB_TOKEN"]
+
         self.db = db
         self.otp_db = otp_db
         self.user_id = user_id
+
         self.GITHUB_REPO = (
             f"https://{token}@github.com/Ruth652/taximela-backend.git"
         )
-        
-        # Local repo path (your machine for now)
-        # self.deploy_repo_path = r"C:\TaxiMelaProject\taximela-otp-deploy"
-        # self.branch = "otp-deploy-clean"
-        # self.gtfs_path = os.path.join(self.deploy_repo_path, "data", "gtfs")
 
     def execute(self):
         print(f"🚀 Starting graph rebuild by {self.user_id}")
@@ -33,7 +28,6 @@ class RebuildGraphUseCase:
 
         print("✅ Full pipeline completed.")
 
-    # 1. EXPORT GTFS
     def export_gtfs(self):
         print("📦 Exporting GTFS...")
 
@@ -47,32 +41,33 @@ class RebuildGraphUseCase:
         print(f"📦 GTFS zip created: {temp_zip.name}")
         return temp_zip.name
 
-    # 2. UPDATE REPO FILES
-    # def update_repo_gtfs(self, zip_path):
-    #     print("📂 Updating GTFS in repo...")
-
-    #     if os.path.exists(self.gtfs_path):
-    #         shutil.rmtree(self.gtfs_path)
-
-    #     os.makedirs(self.gtfs_path, exist_ok=True)
-
-    #     with zipfile.ZipFile(zip_path, "r") as zip_ref:
-    #         zip_ref.extractall(self.gtfs_path)
-
-    #     print(f"📂 GTFS extracted to {self.gtfs_path}")
-
-    # 3. GIT COMMIT + PUSH
     def commit_and_push(self, zip_path):
+
+        env = os.environ.copy()
+        env["GIT_TERMINAL_PROMPT"] = "0"
+
         print("🔧 Cloning repo...")
 
         repo_dir = tempfile.mkdtemp()
 
-        subprocess.run([
-            "git", "clone",
-            "--branch", "otp-deploy-clean",
-            self.GITHUB_REPO,
-            repo_dir
-        ], check=True)
+        # ✅ IMPORTANT FIX: use env here
+        clone = subprocess.run(
+            [
+                "git", "clone",
+                "--branch", "otp-deploy-clean",
+                self.GITHUB_REPO,
+                repo_dir
+            ],
+            capture_output=True,
+            text=True,
+            env=env   # <<< THIS WAS MISSING BEFORE
+        )
+
+        print("STDOUT:\n", clone.stdout)
+        print("STDERR:\n", clone.stderr)
+
+        if clone.returncode != 0:
+            raise Exception("Git clone failed")
 
         gtfs_path = os.path.join(repo_dir, "data", "gtfs")
 
@@ -90,55 +85,36 @@ class RebuildGraphUseCase:
 
         subprocess.run(["git", "add", "data/gtfs"], cwd=repo_dir, check=True)
 
-        result = subprocess.run(
+        commit = subprocess.run(
             ["git", "commit", "-m", "Update GTFS data"],
             cwd=repo_dir,
             capture_output=True,
             text=True
         )
 
-        if "nothing to commit" in (result.stdout + result.stderr).lower():
+        if "nothing to commit" in (commit.stdout + commit.stderr).lower():
             print("⚠️ No changes")
             shutil.rmtree(repo_dir)
             return
 
-        result = subprocess.run(
+        print("🚀 Pushing...")
+
+        push = subprocess.run(
             ["git", "push", "origin", "otp-deploy-clean"],
             cwd=repo_dir,
             capture_output=True,
-            text=True
+            text=True,
+            env=env   # (good practice to include here too)
         )
-        
-        print("STDOUT:\n", result.stdout)
-        print("STDERR:\n", result.stderr)
 
-        if result.returncode != 0:
+        print("STDOUT:\n", push.stdout)
+        print("STDERR:\n", push.stderr)
+
+        if push.returncode != 0:
             raise Exception(
-                f"Git push failed\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+                f"Git push failed\nSTDOUT:\n{push.stdout}\nSTDERR:\n{push.stderr}"
             )
-        
+
         print("🚀 Pushed → Railway will auto-deploy")
 
         shutil.rmtree(repo_dir)
-    # 4. TRIGGER RAILWAY DEPLOY
-    # def trigger_railway_deploy(self):
-    #     print("🚀 Triggering Railway deploy...")
-
-    #     headers = {
-    #     "Authorization": f"Bearer {RAILWAY_TOKEN}",
-    #     "Content-Type": "application/json"
-    # }
-
-    #     response = requests.post(
-    #         "RAILWAY_DEPLOYMENT_ENDPOINT",
-    #         headers=headers,
-    #         json={
-    #             "project_id": "your_project_id",
-    #             "environment_id": "your_environment_id",
-    #             "service_id": "your_service_id"
-    #         }
-    #     )
-    #     if response.status_code == 200:
-    #         print("✅ Railway deploy triggered")
-    #     else:
-    #         print("❌ Railway deploy failed:", response.text)
