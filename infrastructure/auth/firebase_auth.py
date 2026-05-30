@@ -1,7 +1,7 @@
 import os
 import json
 import firebase_admin
-from firebase_admin import auth, credentials
+from firebase_admin import auth, credentials, messaging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -44,12 +44,13 @@ def get_current_firebase_user(
             detail="Invalid or expired token"
         )
 
-def create_firebase_user(email: str, password: str, display_name: str = None):
+def create_firebase_user(email: str, password: str, display_name: str = None, fcm_token: str = None):
     try:
         user = auth.create_user(
             email=email,
             password=password,
-            display_name=display_name
+            display_name=display_name,
+            fcm_token=fcm_token
         )
         return user
     
@@ -79,6 +80,26 @@ def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
             detail=f"Failed to set custom claims: {str(e)}"
         )
 
+def send_push_notification(
+    fcm_token: str,
+    title: str,
+    body: str
+):
+    try:
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body
+            ),
+            token=fcm_token
+        )
+
+        response = messaging.send(message)
+        return response
+
+    except Exception as e:
+        print(f"Push notification failed: {e}")
+        return None
 
 def generate_password_reset_link(email: str) -> str:
     """
