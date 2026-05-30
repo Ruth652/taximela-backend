@@ -83,8 +83,15 @@ class RebuildGraphUseCase:
 
         print("💾 Committing changes...")
 
-        subprocess.run(["git", "add", "data/gtfs"], cwd=repo_dir, check=True)
+        subprocess.run(["git", "add", "-A", "data/gtfs"], cwd=repo_dir, check=True)
+        status = subprocess.run(
+            ["git", "status"],
+            cwd=repo_dir,
+            capture_output=True,
+            text=True
+        )
 
+        print(status.stdout)
         commit = subprocess.run(
             ["git", "commit", "-m", "Update GTFS data"],
             cwd=repo_dir,
