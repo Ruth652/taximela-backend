@@ -4,9 +4,10 @@ from sqlalchemy.exc import IntegrityError
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 from uuid import uuid4
-from infrastructure.config.supabase_client import supabase
+from infrastructure.config.cloudinary import upload_profile_image
 from infrastructure.auth.firebase_auth import set_firebase_custom_claims, generate_password_reset_link
 from infrastructure.email_service import send_admin_invite_email
+from datetime import date
 
 
 class UserNotFoundError(Exception): pass
@@ -185,24 +186,9 @@ async def update_current_user(
     if preferred_language is not None:
         update_data["preferred_language"] = preferred_language
 
-   
     if profile_picture is not None:
 
-        file_bytes = await profile_picture.read()
-
-        file_name = f"{user_id}-{uuid4()}.png"
-
-        supabase.storage.from_("profile-pictures").upload(
-            path=file_name,
-            file=file_bytes,
-            file_options={
-                "content-type": profile_picture.content_type
-            }
-        )
-
-        image_url = supabase.storage.from_(
-            "profile-pictures"
-        ).get_public_url(file_name)
+        image_url = upload_profile_image(profile_picture)
 
         update_data["profile_picture_url"] = image_url
 
@@ -210,3 +196,36 @@ async def update_current_user(
         raise NoUpdateFieldsError()
 
     return user_repo.update_user_profile(user_id, update_data)
+    
+def track_daily_activity(db, firebase_uid: str):
+
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+
+    if not user_id:
+        raise UserNotFoundError()
+
+    user = user_repo.get_user_by_id(user_id)
+
+    today = date.today()
+
+    if user.last_active_date:
+        days_inactive = (today - user.last_active_date.date()).days
+
+        if days_inactive >= 30:
+            penalty_cycles = days_inactive // 30
+            user.rating_score -= penalty_cycles * 5
+
+    if (
+        user.last_active_date and
+        user.last_active_date.date() == today
+    ):
+        return user
+
+    user.rating_score += 1
+
+    user_repo.update_daily_activity(user)
+
+    return user

@@ -65,8 +65,6 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
             detail=f"Firebase error: {str(e)}"
         )
 
-
-
 def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
     """
     Sets custom claims on a Firebase user (e.g. {"role": "operational_admin"}).
