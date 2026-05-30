@@ -65,6 +65,20 @@ def create_firebase_user(email: str, password: str, display_name: str = None, fc
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Firebase error: {str(e)}"
         )
+ 
+
+def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
+    """
+    Sets custom claims on a Firebase user (e.g. {"role": "operational_admin"}).
+    These claims are embedded in the user's JWT on next token refresh.
+    """
+    try:
+        auth.set_custom_user_claims(firebase_uid, claims)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to set custom claims: {str(e)}"
+        )
 
 def send_push_notification(
     fcm_token: str,
@@ -87,57 +101,22 @@ def send_push_notification(
         print(f"Push notification failed: {e}")
         return None
 
-# import firebase_admin
-# import os
-# from firebase_admin import auth, credentials
-# from fastapi import Depends, HTTPException, status
-# from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+def generate_password_reset_link(email: str) -> str:
+    """
+    Generates a Firebase password-reset link for the given email.
+    Used to let a newly created admin set their own password.
+    """
+    try:
+        return auth.generate_password_reset_link(email)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate password reset link: {str(e)}"
+        )
 
-# # Initialize Firebase app only once
-
-# FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
-# if not firebase_admin._apps:
-#     cred = credentials.Certificate(FIREBASE_CREDENTIALS)
-#     firebase_admin.initialize_app(cred)
-
-# security = HTTPBearer()
-
-# def get_current_firebase_user(
-#     credentials: HTTPAuthorizationCredentials = Depends(security)
-# ):
-#     """
-#     Verify Firebase token and return decoded token.
-#     Contains uid, email, and other claims.
-#     """
-#     token = credentials.credentials
-#     try:
-#         decoded_token = auth.verify_id_token(token)
-#         return decoded_token
-#     except Exception:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid or expired token"
-#         )
-# def create_firebase_user(email: str, password: str, display_name: str = None):
-#     try:
-#         user = auth.create_user(
-#             email=email,
-#             password=password,
-#             display_name=display_name
-#         )
-#         return user
-    
-#     except auth.EmailAlreadyExistsError:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Email already exists in Firebase."
-#         )
-
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=f"Firebase error: {str(e)}"
-#         )
+ 
 
 
+
+ 
 

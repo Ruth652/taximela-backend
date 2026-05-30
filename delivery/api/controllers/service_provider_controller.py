@@ -26,17 +26,12 @@ async def create_business_registration_controller(db, user, payload):
             "message": "Business registration submitted successfully",
             "data": result
         }
-    except ServiceProviderPermissionsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
-        print("🔥 ERROR:", str(e))  
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)   
-        )
+        print("🔥 ERROR:", e)
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 async def get_my_applications_controller(db, user, status, page, limit):
     try:
@@ -57,12 +52,12 @@ async def get_my_applications_controller(db, user, status, page, limit):
             "total": result["total"]
         }
 
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
         print("🔥 ERROR:", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong"
-        )
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 async def get_my_application_controller(db, user, registration_id):
     try:
@@ -75,25 +70,24 @@ async def get_my_application_controller(db, user, registration_id):
         )
 
         return result
+    except HTTPException as e:
+        raise e
 
     except Exception as e:
         print("🔥 ERROR:", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong"
-        )
+        raise HTTPException(status_code=500, detail="Something went wrong")
 async def get_business_categories_controller(db):
     try:
         result = get_business_categories_usecase(db)
 
         return result
 
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
         print("🔥 ERROR:", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Something went wrong"
-        )
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 async def get_my_businesses_controller(db, user, status, page, limit):
     try:
@@ -114,6 +108,9 @@ async def get_my_businesses_controller(db, user, status, page, limit):
             "total": result["total"]
         }
 
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
         print("🔥 ERROR:", e)
         raise HTTPException(status_code=500, detail="Something went wrong")
@@ -129,18 +126,24 @@ async def get_business_by_id_controller(db, user, business_id):
 
         return {"data": result}
 
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
         print("🔥 ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 async def update_business_controller(db, user, business_id, payload):
     try:
         firebase_uid = user["uid"]
         result = update_business_usecase(db, firebase_uid, business_id, payload)
         return {"data": result, "message": "Business updated successfully"}
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
         print("🔥 ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))  
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 async def get_dashboard_summary_controller(
     db,
@@ -154,13 +157,9 @@ async def get_dashboard_summary_controller(
         firebase_uid = user["uid"]
         summary = get_dashboard_summary_usecase(db, firebase_uid)
         return summary
-    except ServiceProviderPermissionsError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
-        )
+    except HTTPException as e:
+        raise e
+
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        print("🔥 ERROR:", e)
+        raise HTTPException(status_code=500, detail="Something went wrong")

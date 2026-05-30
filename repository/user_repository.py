@@ -121,3 +121,14 @@ class UserRepository:
         self.db.commit()
         self.db.refresh(user)
         return user
+    def promote_to_business_owner(self, user):
+        try:
+            user.is_business_owner = True
+            self.db.add(user)
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+        except Exception as e:
+            self.db.rollback()
+            print(f"--- [UserRepository] Error updating user: {e} ---")
+            raise e
