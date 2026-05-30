@@ -10,12 +10,16 @@ from services.gtfs_service import GTFSService
 
 
 class RebuildGraphUseCase:
+
     def __init__(self, db, otp_db, user_id):
+        token = os.environ["GITHUB_TOKEN"]
         self.db = db
         self.otp_db = otp_db
         self.user_id = user_id
-        self.GITHUB_REPO = "https://github.com/Ruth652/taximela-backend.git"
-
+        self.GITHUB_REPO = (
+            f"https://{token}@github.com/Ruth652/taximela-backend.git"
+        )
+        
         # Local repo path (your machine for now)
         # self.deploy_repo_path = r"C:\TaxiMelaProject\taximela-otp-deploy"
         # self.branch = "otp-deploy-clean"
