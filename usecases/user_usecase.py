@@ -15,10 +15,13 @@ class NoUpdateFieldsError(Exception): pass
 class PermissionDeniedError(Exception): pass
 
 
-
+# =========================
+# USER FIRST LOGIN
+# =========================
 def create_user_first_login(
     db,
     firebase_uid: str,
+    fcm_token: str | None,
     email: str,
     payload: dict | None = None,
     *,
@@ -27,7 +30,6 @@ def create_user_first_login(
 
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
-
     payload = payload or {}
 
     # 1️⃣ Check if Firebase identity already exists
@@ -36,6 +38,12 @@ def create_user_first_login(
     if existing_user_id:
         user = user_repo.get_user_by_id(existing_user_id)
 
+        # 🔥 update FCM token if changed
+        if fcm_token and user.fcm_token != fcm_token:
+            user.fcm_token = fcm_token
+            db.commit()
+            print(f"[FCM] Updated token for user {user.id}")
+
         return {
             "id": user.id,
             "firebase_uid": firebase_uid,
@@ -43,21 +51,27 @@ def create_user_first_login(
             "full_name": user.full_name,
         }
 
-    # 2️ Check if user exists by email
-    print("# 2 Check if user exists by email")
+    # 2️⃣ Check if user exists by email
     user = user_repo.get_user_by_email(email)
 
-    # 3️ If user does not exist → create user
+    # 3️⃣ Create user if not exists
     if not user:
-        print("# 3 If user does not exist → create user")
-
         user = user_repo.create_user(
             email=email,
             full_name=payload.get("full_name"),
             preferred_language=payload.get("preferred_language", "en"),
             is_commuter=payload.get("is_commuter", False),
             is_business_owner=payload.get("is_business_owner", False),
+            fcm_token=fcm_token
         )
+        print(f"[USER] Created new user {user.id}")
+
+    else:
+        # 🔥 update FCM token if existing email user logs in
+        if fcm_token and user.fcm_token != fcm_token:
+            user.fcm_token = fcm_token
+            db.commit()
+            print(f"[FCM] Updated token for existing email user {user.id}")
 
     user_id = user.id
 
@@ -75,12 +89,18 @@ def create_user_first_login(
         "full_name": user.full_name,
     }
 
+
+# =========================
+# ADMIN FIRST LOGIN
+# =========================
 def create_admin_first_login(
     db,
     creator_firebase_uid: str,
     new_user,
-    create_firebase_user
+    create_firebase_user,
+    fcm_token: str | None = None
 ):
+
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
@@ -118,6 +138,7 @@ def create_admin_first_login(
         email=new_user.email,
         full_name=new_user.full_name,
         preferred_language="en",
+        fcm_token=fcm_token
     )
 
     # 7. Map Firebase UID → internal user ID
@@ -150,8 +171,11 @@ def create_admin_first_login(
         "full_name": user.full_name,
         "role": new_user.role
     }
-    
 
+
+# =========================
+# GET CURRENT USER
+# =========================
 def get_current_user(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
@@ -161,7 +185,6 @@ def get_current_user(db, firebase_uid: str):
         return None
 
     return user_repo.get_user_by_id(user_id)
-
 
 async def update_current_user(
     db,

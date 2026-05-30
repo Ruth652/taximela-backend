@@ -1,6 +1,7 @@
 from uuid import UUID
 from sqlalchemy.orm import Session
 
+from infrastructure.auth.firebase_auth import send_push_notification
 from domain.contribution_model import Contribution, ContributionStatusEnum
 from repository.gtfs_repository import GTFSRepository
 from repository.auth_identity_repository import AuthIdentityRepository
@@ -161,7 +162,13 @@ async def UpdateContributionStatusUsecase(user_id: str, contribution_id: int, ne
                     reference_stops=contribution.payload.get("stops"),
                     target_id=contribution.target_id if contribution.target_id else None
                 )
-            
+
+        if user and user.fcm_token:
+            send_push_notification(
+                fcm_token=user.fcm_token,
+                title="Contribution Approved",
+                body="Your contribution has been approved."
+    )
            
         contribution.group_id = group.id
         gtfs_repo.add_to_gtfs_queue(db, group_id=group.id, queued_by=admin_id)
