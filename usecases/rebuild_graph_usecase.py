@@ -113,7 +113,7 @@ class RebuildGraphUseCase:
                 f"Git push failed\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
             )
         
-                print("🚀 Pushed → Railway will auto-deploy")
+        print("🚀 Pushed → Railway will auto-deploy")
 
         shutil.rmtree(repo_dir)
     # 4. TRIGGER RAILWAY DEPLOY
