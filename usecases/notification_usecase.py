@@ -2,6 +2,7 @@ from fastapi import HTTPException
 from repository.notification_repository import NotificationRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 from repository.admin_repository import AdminRepository
+from services.notification_service import NotificationService, NOTIFICATION_CONFIG
 import uuid
 
 
@@ -31,6 +32,7 @@ def get_notifications_usecase(db, firebase_uid: str, page: int, limit: int):
                 "read": n.read,
                 "action_url": n.action_url,
                 "priority": n.priority,
+                "roles": NOTIFICATION_CONFIG.get(n.type, {}).get("roles", []),
             }
             for n in result["notifications"]
         ],
