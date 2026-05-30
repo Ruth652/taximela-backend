@@ -13,6 +13,7 @@ from usecases.user_usecase import (
     UserNotFoundError,
     NoUpdateFieldsError,
     PermissionDeniedError,
+    track_daily_activity
 )
 
 
@@ -95,3 +96,11 @@ async def update_current_user_controller(
         "message": "Profile updated successfully",
         "user": updated_user
     }
+
+async def track_daily_activity_controller(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    firebase_uid = firebase_user["uid"]
+
+    return track_daily_activity(db, firebase_uid)
