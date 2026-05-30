@@ -23,6 +23,7 @@ from uuid import UUID
 
 
 
+
 router = APIRouter(
     prefix="/api/admin",
     tags=["Admin - Business-management"]
@@ -116,4 +117,5 @@ async def get_business_details(
         user_id=user['uid'],
         business_id=business_id
     )
+
     

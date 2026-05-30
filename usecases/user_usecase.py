@@ -1,6 +1,13 @@
+import secrets
+
 from sqlalchemy.exc import IntegrityError
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
+from uuid import uuid4
+from infrastructure.config.cloudinary import upload_profile_image
+from infrastructure.auth.firebase_auth import set_firebase_custom_claims, generate_password_reset_link
+from infrastructure.email_service import send_admin_invite_email
+
 
 class UserNotFoundError(Exception): pass
 class NoUpdateFieldsError(Exception): pass
@@ -67,17 +74,12 @@ def create_user_first_login(
 
     user_id = user.id
 
-    # 4️⃣ Create auth identity (avoid duplicates if possible)
-    try:
-        auth_repo.create_auth_identity(
-            firebase_uid=firebase_uid,
-            entity_id=user_id,
-            entity_type=entity_type
-        )
-    except IntegrityError:
-        print("[AUTH] Identity already exists, skipping")
-
-    db.commit()
+    
+    auth_repo.create_auth_identity(
+        firebase_uid=firebase_uid,
+        entity_id=user_id,
+        entity_type=entity_type
+    )
 
     return {
         "id": user_id,
@@ -101,6 +103,7 @@ def create_admin_first_login(
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
+    # 1. Verify the creator exists and is a super_admin
     creator_user_id = auth_repo.get_user_uuid_by_firebase_uid(creator_firebase_uid)
     if not creator_user_id:
         raise UserNotFoundError()
@@ -112,14 +115,24 @@ def create_admin_first_login(
     if not creator_admin_id:
         raise PermissionDeniedError()
 
-    # Firebase user creation
+    # 2. Generate a secure random temporary password (admin will replace via email link)
+    temp_password = secrets.token_urlsafe(16)
+
+    # 3. Create the Firebase user with the temp password
     firebase = create_firebase_user(
         email=new_user.email,
-        password="DefaultPassword123!",
-        display_name=new_user.full_name,
+
+        password=temp_password,
+        display_name=new_user.full_name
     )
 
-    # Local user creation
+    # 4. Set the admin role as a custom claim on the Firebase token
+    set_firebase_custom_claims(firebase.uid, {"role": new_user.role.value})
+
+    # 5. Generate a password-reset link so the admin can set their own password
+    reset_link = generate_password_reset_link(new_user.email)
+
+    # 6. Create the user record in the main DB
     user = user_repo.create_user(
         email=new_user.email,
         full_name=new_user.full_name,
@@ -127,12 +140,14 @@ def create_admin_first_login(
         fcm_token=fcm_token
     )
 
+    # 7. Map Firebase UID → internal user ID
     auth_repo.create_auth_identity(
         firebase_uid=firebase.uid,
         entity_type="admin",
         entity_id=user.id
     )
 
+    # 8. Promote the user to admin with the specified role
     user_repo.promote_to_admin(
         user.id,
         role=new_user.role,
@@ -140,6 +155,14 @@ def create_admin_first_login(
     )
 
     db.commit()
+
+    # 9. Send the branded invitation email with the password-setup link
+    send_admin_invite_email(
+        to=new_user.email,
+        full_name=new_user.full_name,
+        role=new_user.role.value,
+        reset_link=reset_link,
+    )
 
     return {
         "id": user.id,
@@ -162,32 +185,34 @@ def get_current_user(db, firebase_uid: str):
 
     return user_repo.get_user_by_id(user_id)
 
-
-# =========================
-# UPDATE CURRENT USER
-# =========================
-def update_current_user(db, firebase_uid: str, payload):
-
+async def update_current_user(
+    db,
+    firebase_uid: str,
+    full_name=None,
+    preferred_language=None,
+    profile_picture=None
+):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
     user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+
     if not user_id:
         raise UserNotFoundError()
 
-    allowed_fields = {
-        "full_name",
-        "preferred_language",
-        "profile_picture_url"
-    }
+    update_data = {}
 
-    raw = payload.dict() if hasattr(payload, "dict") else dict(payload)
+    if full_name is not None:
+        update_data["full_name"] = full_name
 
-    update_data = {
-        key: value
-        for key, value in raw.items()
-        if key in allowed_fields and value is not None
-    }
+    if preferred_language is not None:
+        update_data["preferred_language"] = preferred_language
+
+    if profile_picture is not None:
+
+        image_url = upload_profile_image(profile_picture)
+
+        update_data["profile_picture_url"] = image_url
 
     if not update_data:
         raise NoUpdateFieldsError()

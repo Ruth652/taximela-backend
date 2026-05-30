@@ -50,6 +50,48 @@ def get_current_operational_admin(
 
     return admin
 
+
+def get_current_operational_or_superadmin(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db),
+):
+    firebase_uid = firebase_user["uid"]
+
+    # Step 1: Find auth identity
+    identity = (
+        db.query(AuthIdentity)
+        .filter(AuthIdentity.firebase_uid == firebase_uid)
+        .first()
+    )
+
+    if not identity or identity.entity_type != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized as admin",
+        )
+
+    # Step 2: Get admin record
+    admin = (
+        db.query(Admin)
+        .filter(Admin.user_id == identity. entity_id, Admin.is_active == True)
+        .first()
+    )
+
+    if not admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin record not found",
+        )
+
+    # Role check (only operational and super admin can access)
+    if admin.role == "business_admin":  
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient admin privileges(only business and super admin have access)",
+        )
+
+    return admin
+
 def verify_super_admin_permissions(db: Session, firebase_uid: str):
     from repository.admin_repository import AdminRepository
 
