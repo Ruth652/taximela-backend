@@ -14,19 +14,18 @@ class RebuildGraphUseCase:
         self.db = db
         self.otp_db = otp_db
         self.user_id = user_id
+        self.GITHUB_REPO = "https://github.com/Ruth652/taximela-backend.git"
 
         # Local repo path (your machine for now)
-        self.deploy_repo_path = r"C:\TaxiMelaProject\taximela-otp-deploy"
-        self.branch = "otp-deploy-clean"
-        self.gtfs_path = os.path.join(self.deploy_repo_path, "data", "gtfs")
+        # self.deploy_repo_path = r"C:\TaxiMelaProject\taximela-otp-deploy"
+        # self.branch = "otp-deploy-clean"
+        # self.gtfs_path = os.path.join(self.deploy_repo_path, "data", "gtfs")
 
     def execute(self):
         print(f"🚀 Starting graph rebuild by {self.user_id}")
 
         zip_path = self.export_gtfs()
-        self.update_repo_gtfs(zip_path)
-        self.commit_and_push()
-        # self.trigger_railway_deploy()
+        self.commit_and_push(zip_path)
 
         print("✅ Full pipeline completed.")
 
@@ -45,55 +44,69 @@ class RebuildGraphUseCase:
         return temp_zip.name
 
     # 2. UPDATE REPO FILES
-    def update_repo_gtfs(self, zip_path):
-        print("📂 Updating GTFS in repo...")
+    # def update_repo_gtfs(self, zip_path):
+    #     print("📂 Updating GTFS in repo...")
 
-        if os.path.exists(self.gtfs_path):
-            shutil.rmtree(self.gtfs_path)
+    #     if os.path.exists(self.gtfs_path):
+    #         shutil.rmtree(self.gtfs_path)
 
-        os.makedirs(self.gtfs_path, exist_ok=True)
+    #     os.makedirs(self.gtfs_path, exist_ok=True)
 
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(self.gtfs_path)
+    #     with zipfile.ZipFile(zip_path, "r") as zip_ref:
+    #         zip_ref.extractall(self.gtfs_path)
 
-        print(f"📂 GTFS extracted to {self.gtfs_path}")
+    #     print(f"📂 GTFS extracted to {self.gtfs_path}")
 
     # 3. GIT COMMIT + PUSH
-    def commit_and_push(self):
-        print("🔧 Committing GTFS only...")
+    def commit_and_push(self, zip_path):
+        print("🔧 Cloning repo...")
 
-        def run(cmd):
-            result = subprocess.run(
-                cmd,
-                cwd=self.deploy_repo_path,
-                capture_output=True,
-                text=True
-            )
-            print(result.stdout)
-            print(result.stderr)
-            if result.returncode != 0:
-                raise Exception(f"Git command failed: {' '.join(cmd)}")
+        repo_dir = tempfile.mkdtemp()
 
-        run(["git", "pull", "origin", self.branch])
-        run(["git", "add", "data/gtfs"])
+        subprocess.run([
+            "git", "clone",
+            "--branch", "otp-deploy-clean",
+            self.GITHUB_REPO,
+            repo_dir
+        ], check=True)
 
-        commit = subprocess.run(
+        gtfs_path = os.path.join(repo_dir, "data", "gtfs")
+
+        print("📂 Replacing GTFS...")
+
+        if os.path.exists(gtfs_path):
+            shutil.rmtree(gtfs_path)
+
+        os.makedirs(gtfs_path, exist_ok=True)
+
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(gtfs_path)
+
+        print("💾 Committing changes...")
+
+        subprocess.run(["git", "add", "data/gtfs"], cwd=repo_dir, check=True)
+
+        result = subprocess.run(
             ["git", "commit", "-m", "Update GTFS data"],
-            cwd=self.deploy_repo_path,
+            cwd=repo_dir,
             capture_output=True,
             text=True
         )
 
-        if "nothing to commit" in (commit.stdout + commit.stderr).lower():
-            print("⚠️ No GTFS changes detected.")
+        if "nothing to commit" in (result.stdout + result.stderr).lower():
+            print("⚠️ No changes")
+            shutil.rmtree(repo_dir)
             return
 
-        print(commit.stdout)
-        print(commit.stderr)
+        subprocess.run(
+            ["git", "push", "origin", "otp-deploy-clean"],
+            cwd=repo_dir,
+            check=True
+        )
 
-        run(["git", "push", "origin", self.branch])
-        print("📤 Pushed GTFS to otp-deploy-clean")
+        print("🚀 Pushed → Railway will auto-deploy")
 
+        shutil.rmtree(repo_dir)
     # 4. TRIGGER RAILWAY DEPLOY
     # def trigger_railway_deploy(self):
     #     print("🚀 Triggering Railway deploy...")
