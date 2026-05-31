@@ -9,9 +9,13 @@ from usecases.user_usecase import (
     create_user_first_login,
     get_current_user,
     update_current_user,
+    track_daily_activity,
+    update_user_navigation_done,
     UserNotFoundError,
     NoUpdateFieldsError,
     PermissionDeniedError,
+    InvalidFullNameError,
+    InvalidLanguageError,
 )
 
 
@@ -22,11 +26,14 @@ async def create_user_controller(
 ):
     auth_user_id = firebase_user["uid"]
     email = firebase_user["email"]
+    fcm_token = payload.fcm_token if payload else None
+
     return create_user_first_login(
         db=db,
         firebase_uid=auth_user_id,
         email=email,
-        payload=payload.dict()
+        payload=payload.dict(),
+        fcm_token=fcm_token
     )
 
 
@@ -71,10 +78,43 @@ async def update_current_user_controller(
     firebase_uid = firebase_user["uid"]
 
     try:
-        updated_user = update_current_user(db, firebase_uid, payload)
+        updated_user = await update_current_user(
+            db=db,
+            firebase_uid=firebase_uid,
+            full_name=payload.full_name,
+            preferred_language=payload.preferred_language,
+            profile_picture=getattr(payload, "profile_picture", None)
+        )
     except UserNotFoundError:
         raise HTTPException(404, "User not found")
     except NoUpdateFieldsError:
         raise HTTPException(400, "No valid fields provided")
+    except InvalidFullNameError as e:
+        raise HTTPException(400, str(e))
+    except InvalidLanguageError as e:
+        raise HTTPException(400, str(e))
 
     return {"message": "Profile updated successfully", "user": updated_user}
+
+
+async def track_daily_activity_controller(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    firebase_uid = firebase_user["uid"]
+    return track_daily_activity(db, firebase_uid)
+
+
+async def update_user_navigation_done_controller(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    firebase_uid = firebase_user["uid"]
+
+    try:
+        user = get_current_user(db, firebase_uid)
+        if not user:
+            raise UserNotFoundError()
+        return update_user_navigation_done(db, firebase_uid)
+    except UserNotFoundError:
+        raise HTTPException(404, "User not found")

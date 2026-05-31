@@ -21,7 +21,7 @@ class ContributionGroupController:
 
     def get_groups(self, page: int, limit: int, target_type: str = None, action: str = None):
         auth_repo = AuthIdentityRepository(self.db)
-        admin = auth_repo.get_super_admin_uuid_by_firebase_uid(firebase_uids=[self.user["uid"]])
+        admin = auth_repo.get_super_admin_operational_admin_uuids(firebase_uids=[self.user["uid"]])
         
         if not admin:
             raise HTTPException(status_code=Status.HTTP_403_FORBIDDEN, detail="You are not a super admin user")

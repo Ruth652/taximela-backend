@@ -1,49 +1,34 @@
-# import os
-# import json
 # import firebase_admin
+# import os
 # from firebase_admin import auth, credentials
 # from fastapi import Depends, HTTPException, status
 # from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-# from dotenv import load_dotenv
 
-# # Load .env locally
-# load_dotenv()
+# # Initialize Firebase app only once
 
-# # Prevent re-initializing Firebase
+# FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
 # if not firebase_admin._apps:
-
-#     if os.getenv("ENV") == "production":
-#         firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
-
-#         if not firebase_credentials:
-#             raise ValueError("FIREBASE_CREDENTIALS environment variable not set")
-
-#         cred_dict = json.loads(firebase_credentials)
-#         cred = credentials.Certificate(cred_dict)
-
-#     else:
-#         cred = credentials.Certificate("firebase_key.json")
-
+#     cred = credentials.Certificate(FIREBASE_CREDENTIALS)
 #     firebase_admin.initialize_app(cred)
-#     print("Running in:", os.getenv("ENV", "development"))
-
 
 # security = HTTPBearer()
-
 
 # def get_current_firebase_user(
 #     credentials: HTTPAuthorizationCredentials = Depends(security)
 # ):
+#     """
+#     Verify Firebase token and return decoded token.
+#     Contains uid, email, and other claims.
+#     """
 #     token = credentials.credentials
 #     try:
 #         decoded_token = auth.verify_id_token(token)
 #         return decoded_token
 #     except Exception:
-#         raise HTTPException(
+#     raise HTTPException(
 #             status_code=status.HTTP_401_UNAUTHORIZED,
 #             detail="Invalid or expired token"
 #         )
-
 # def create_firebase_user(email: str, password: str, display_name: str = None):
 #     try:
 #         user = auth.create_user(
@@ -64,45 +49,42 @@
 #             status_code=status.HTTP_400_BAD_REQUEST,
 #             detail=f"Firebase error: {str(e)}"
 #         )
-
- 
-
-
-
-
-import firebase_admin
 import os
 import json
-from firebase_admin import auth, credentials
+import firebase_admin
+from firebase_admin import auth, credentials, messaging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 
+# Load .env locally
 load_dotenv()
 
+# Prevent re-initializing Firebase
 if not firebase_admin._apps:
-    firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
 
-    if firebase_credentials:
-        # Production: FIREBASE_CREDENTIALS is a JSON string
+    if os.getenv("ENV") == "production":
+        firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
+
+        if not firebase_credentials:
+            raise ValueError("FIREBASE_CREDENTIALS environment variable not set")
+
         cred_dict = json.loads(firebase_credentials)
         cred = credentials.Certificate(cred_dict)
+
     else:
-        # Development: use local firebase_key.json file
         cred = credentials.Certificate("firebase_key.json")
 
     firebase_admin.initialize_app(cred)
     print("Running in:", os.getenv("ENV", "development"))
 
+
 security = HTTPBearer()
+
 
 def get_current_firebase_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """
-    Verify Firebase token and return decoded token.
-    Contains uid, email, and other claims.
-    """
     token = credentials.credentials
     try:
         decoded_token = auth.verify_id_token(token)
@@ -112,15 +94,17 @@ def get_current_firebase_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
-def create_firebase_user(email: str, password: str, display_name: str = None):
+
+def create_firebase_user(email: str, password: str, display_name: str = None, fcm_token: str = None):
     try:
         user = auth.create_user(
             email=email,
             password=password,
-            display_name=display_name
+            display_name=display_name,
+            fcm_token=fcm_token
         )
         return user
-
+    
     except auth.EmailAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -132,8 +116,6 @@ def create_firebase_user(email: str, password: str, display_name: str = None):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Firebase error: {str(e)}"
         )
-
-
 
 def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
     """
@@ -148,6 +130,26 @@ def set_firebase_custom_claims(firebase_uid: str, claims: dict) -> None:
             detail=f"Failed to set custom claims: {str(e)}"
         )
 
+def send_push_notification(
+    fcm_token: str,
+    title: str,
+    body: str
+):
+    try:
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body
+            ),
+            token=fcm_token
+        )
+
+        response = messaging.send(message)
+        return response
+
+    except Exception as e:
+        print(f"Push notification failed: {e}")
+        return None
 
 def generate_password_reset_link(email: str) -> str:
     """
@@ -161,6 +163,10 @@ def generate_password_reset_link(email: str) -> str:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate password reset link: {str(e)}"
         )
+
+ 
+
+
 
  
 

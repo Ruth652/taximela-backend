@@ -2,19 +2,27 @@ import secrets
 
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
+from uuid import uuid4
 from infrastructure.auth.firebase_auth import set_firebase_custom_claims, generate_password_reset_link
 from infrastructure.email_service import send_admin_invite_email
 from services.notification_service import NotificationService
+from datetime import date
 
 
 class UserNotFoundError(Exception): pass
 class NoUpdateFieldsError(Exception): pass
 class PermissionDeniedError(Exception): pass
+class InvalidFullNameError(Exception): pass
+class InvalidLanguageError(Exception): pass
 
 
+# =========================
+# USER FIRST LOGIN
+# =========================
 def create_user_first_login(
     db,
     firebase_uid: str,
+    fcm_token: str | None,
     email: str,
     payload: dict | None = None,
     *,
@@ -22,12 +30,18 @@ def create_user_first_login(
 ):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
-
     payload = payload or {}
 
     existing_user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
     if existing_user_id:
         user = user_repo.get_user_by_id(existing_user_id)
+
+        # Update FCM token if changed
+        if fcm_token and user.fcm_token != fcm_token:
+            user.fcm_token = fcm_token
+            db.commit()
+            print(f"[FCM] Updated token for user {user.id}")
+
         return {
             "id": user.id,
             "firebase_uid": firebase_uid,
@@ -35,6 +49,7 @@ def create_user_first_login(
             "full_name": user.full_name,
         }
 
+    # Check if user exists by email
     user = user_repo.get_user_by_email(email)
 
     if not user:
@@ -44,7 +59,15 @@ def create_user_first_login(
             preferred_language=payload.get("preferred_language", "en"),
             is_commuter=payload.get("is_commuter", False),
             is_business_owner=payload.get("is_business_owner", False),
+            fcm_token=fcm_token
         )
+        print(f"[USER] Created new user {user.id}")
+    else:
+        # Update FCM token if existing email user logs in
+        if fcm_token and user.fcm_token != fcm_token:
+            user.fcm_token = fcm_token
+            db.commit()
+            print(f"[FCM] Updated token for existing email user {user.id}")
 
     user_id = user.id
 
@@ -62,11 +85,15 @@ def create_user_first_login(
     }
 
 
+# =========================
+# ADMIN FIRST LOGIN
+# =========================
 def create_admin_first_login(
     db,
     creator_firebase_uid: str,
     new_user,
-    create_firebase_user
+    create_firebase_user,
+    fcm_token: str | None = None
 ):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
@@ -97,6 +124,7 @@ def create_admin_first_login(
         email=new_user.email,
         full_name=new_user.full_name,
         preferred_language="en",
+        fcm_token=fcm_token
     )
 
     auth_repo.create_auth_identity(
@@ -127,7 +155,7 @@ def create_admin_first_login(
             message=f"{new_user.full_name} ({new_user.role.value}) was added as an admin",
         )
     except Exception:
-        pass  # Notifications are non-critical
+        pass
 
     return {
         "id": user.id,
@@ -137,6 +165,9 @@ def create_admin_first_login(
     }
 
 
+# =========================
+# GET CURRENT USER
+# =========================
 def get_current_user(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
@@ -148,7 +179,16 @@ def get_current_user(db, firebase_uid: str):
     return user_repo.get_user_by_id(user_id)
 
 
-def update_current_user(db, firebase_uid: str, payload):
+# =========================
+# UPDATE CURRENT USER
+# =========================
+async def update_current_user(
+    db,
+    firebase_uid: str,
+    full_name=None,
+    preferred_language=None,
+    profile_picture=None
+):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
@@ -156,17 +196,73 @@ def update_current_user(db, firebase_uid: str, payload):
     if not user_id:
         raise UserNotFoundError()
 
-    allowed_fields = {"full_name", "preferred_language", "profile_picture_url"}
+    update_data = {}
 
-    raw = payload.dict() if hasattr(payload, "dict") else dict(payload)
+    if full_name is not None:
+        full_name = full_name.strip()
+        if full_name.lower() == "string":
+            raise InvalidFullNameError("Full name cannot be 'string'")
+        if len(full_name) < 3 or len(full_name) > 100:
+            raise InvalidFullNameError("Full name must be between 3 and 100 characters")
+        update_data["full_name"] = full_name
 
-    update_data = {
-        key: value
-        for key, value in raw.items()
-        if key in allowed_fields and value is not None
-    }
+    if preferred_language is not None:
+        preferred_language = preferred_language.strip().lower()
+        if preferred_language == "string":
+            raise InvalidLanguageError("Preferred language must be 'en' or 'am'")
+        if preferred_language not in {"en", "am"}:
+            raise InvalidLanguageError("Preferred language must be 'en' or 'am'")
+        update_data["preferred_language"] = preferred_language
+
+    if profile_picture is not None:
+        from infrastructure.config.cloudinary import upload_profile_image
+        image_url = upload_profile_image(profile_picture)
+        update_data["profile_picture_url"] = image_url
 
     if not update_data:
         raise NoUpdateFieldsError()
 
     return user_repo.update_user_profile(user_id, update_data)
+
+
+# =========================
+# DAILY ACTIVITY TRACKING
+# =========================
+def track_daily_activity(db, firebase_uid: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        raise UserNotFoundError()
+
+    user = user_repo.get_user_by_id(user_id)
+    today = date.today()
+
+    if user.last_active_date:
+        days_inactive = (today - user.last_active_date.date()).days
+        if days_inactive >= 30:
+            penalty_cycles = days_inactive // 30
+            user.rating_score -= penalty_cycles * 5
+
+    if user.last_active_date and user.last_active_date.date() == today:
+        return user
+
+    user.rating_score += 1
+    user_repo.update_daily_activity(user)
+
+    return user
+
+
+def update_user_navigation_done(db, firebase_uid: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        raise UserNotFoundError()
+
+    user = user_repo.get_user_by_id(user_id)
+    user_repo.update_user_navigation_done(user)
+
+    return user

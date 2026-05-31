@@ -6,6 +6,7 @@ from domain.auth_identity_model import AuthIdentity
 from domain.user_model import User
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import and_
+from datetime import date
 
 
 
@@ -23,7 +24,8 @@ class UserRepository:
             preferred_language = preferred_language,
             is_commuter=is_commuter,
             is_business_owner=is_business_owner,
-            rating_score = 20
+            rating_score = 20,
+            last_active_date=date.today()
 
         )
 
@@ -132,3 +134,18 @@ class UserRepository:
             self.db.rollback()
             print(f"--- [UserRepository] Error updating user: {e} ---")
             raise e
+    def update_daily_activity(self, user):
+
+        user.last_active_date = date.today()
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
+    def update_user_navigation_done(self, user):
+
+        user.rating_score += 2
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
