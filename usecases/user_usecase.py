@@ -252,3 +252,18 @@ def track_daily_activity(db, firebase_uid: str):
     user_repo.update_daily_activity(user)
 
     return user
+
+def update_user_navigation_done(db, firebase_uid: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+
+    if not user_id:
+        raise UserNotFoundError()
+
+    user = user_repo.get_user_by_id(user_id)
+    
+    user_repo.update_user_navigation_done(user)
+
+    return user
