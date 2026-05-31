@@ -15,6 +15,9 @@ from usecases.user_usecase import (
     update_current_user,
     UserNotFoundError,
     NoUpdateFieldsError,
+    PermissionDeniedError,
+    track_daily_activity,
+    update_user_navigation_done
     InvalidFullNameError,
     InvalidLanguageError,
     
@@ -114,3 +117,19 @@ async def track_daily_activity_controller(
     firebase_uid = firebase_user["uid"]
 
     return track_daily_activity(db, firebase_uid)
+
+async def update_user_navigation_done_controller(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    firebase_uid = firebase_user["uid"]
+
+    try:
+        user = get_current_user(db, firebase_uid)
+        if not user:
+            raise UserNotFoundError()
+
+        return update_user_navigation_done(db, firebase_uid)
+
+    except UserNotFoundError:
+        raise HTTPException(404, "User not found")

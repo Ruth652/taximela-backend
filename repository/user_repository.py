@@ -142,3 +142,10 @@ class UserRepository:
         self.db.refresh(user)
 
         return user
+    def update_user_navigation_done(self, user):
+
+        user.rating_score += 2
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
