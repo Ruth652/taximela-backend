@@ -10,11 +10,17 @@ from usecases.user_usecase import (
     create_user_first_login,
     get_current_user,
     update_current_user,
+    PermissionDeniedError,
+    track_daily_activity,
+    update_current_user,
     UserNotFoundError,
     NoUpdateFieldsError,
     PermissionDeniedError,
     track_daily_activity,
     update_user_navigation_done
+    InvalidFullNameError,
+    InvalidLanguageError,
+    
 )
 
 
@@ -92,6 +98,12 @@ async def update_current_user_controller(
 
     except NoUpdateFieldsError:
         raise HTTPException(400, "No valid fields provided")
+
+    except InvalidFullNameError as e:
+        raise HTTPException(400, str(e))
+
+    except InvalidLanguageError as e:
+        raise HTTPException(400, str(e))
 
     return {
         "message": "Profile updated successfully",
