@@ -11,6 +11,7 @@ from usecases.user_usecase import (
     update_current_user,
     track_daily_activity,
     update_user_navigation_done,
+    update_fcm_token,
     UserNotFoundError,
     NoUpdateFieldsError,
     PermissionDeniedError,
@@ -116,5 +117,17 @@ async def update_user_navigation_done_controller(
         if not user:
             raise UserNotFoundError()
         return update_user_navigation_done(db, firebase_uid)
+    except UserNotFoundError:
+        raise HTTPException(404, "User not found")
+
+
+async def update_fcm_token_controller(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db),
+    fcm_token: str = None,
+):
+    firebase_uid = firebase_user["uid"]
+    try:
+        return update_fcm_token(db, firebase_uid, fcm_token)
     except UserNotFoundError:
         raise HTTPException(404, "User not found")

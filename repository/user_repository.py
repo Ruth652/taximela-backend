@@ -17,18 +17,17 @@ class UserRepository:
     def get_user_by_email(self, email: str):
         return self.db.query(User).filter(User.email == email).first()
 
-    def create_user(self, email, full_name=None, preferred_language="en",is_commuter=False, is_business_owner=False):
+    def create_user(self, email, full_name=None, preferred_language="en", is_commuter=False, is_business_owner=False, fcm_token=None):
         user = User(
-            email= email,
-            full_name = full_name,
-            preferred_language = preferred_language,
+            email=email,
+            full_name=full_name,
+            preferred_language=preferred_language,
             is_commuter=is_commuter,
             is_business_owner=is_business_owner,
-            rating_score = 20,
-            last_active_date=date.today()
-
+            rating_score=20,
+            last_active_date=date.today(),
+            fcm_token=fcm_token,
         )
-
         self.db.add(user)
         self.db.commit()
         return user
@@ -143,9 +142,16 @@ class UserRepository:
 
         return user
     def update_user_navigation_done(self, user):
-
         user.rating_score += 2
         self.db.commit()
         self.db.refresh(user)
+        return user
 
+    def update_fcm_token(self, user_id, fcm_token: str):
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return None
+        user.fcm_token = fcm_token
+        self.db.commit()
+        self.db.refresh(user)
         return user

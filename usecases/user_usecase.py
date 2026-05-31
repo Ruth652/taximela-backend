@@ -264,5 +264,16 @@ def update_user_navigation_done(db, firebase_uid: str):
 
     user = user_repo.get_user_by_id(user_id)
     user_repo.update_user_navigation_done(user)
-
     return user
+
+
+def update_fcm_token(db, firebase_uid: str, fcm_token: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        raise UserNotFoundError()
+
+    user_repo.update_fcm_token(user_id, fcm_token)
+    return {"message": "FCM token updated"}
