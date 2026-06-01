@@ -25,22 +25,27 @@ from domain.route_otp_model import Routes
 from domain.shape_model import Shapes
 from domain.calendar_model import Calendar
 from domain.notification_model import Notification
+from domain.subscription_model import BusinessSubscription
 from domain.auth_handoff_model import AuthHandoffToken
 
 def scheduled_rebuild():
     print("Running scheduled rebuild...")
-
-    # create fresh DB sessions
     db = next(get_db())
     otp_db = next(get_otp_db())
-
-    usecase = RebuildGraphUseCase(
-        db=db,
-        otp_db=otp_db,
-        user_id="system"
-    )
-
+    usecase = RebuildGraphUseCase(db=db, otp_db=otp_db, user_id="system")
     usecase.execute()
+
+
+def expire_subscriptions():
+    print("Checking for expired subscriptions...")
+    from repository.subscription_repository import SubscriptionRepository
+    db = next(get_db())
+    try:
+        count = SubscriptionRepository(db).expire_stale_subscriptions()
+        if count:
+            print(f"Expired {count} subscription(s)")
+    finally:
+        db.close()
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -96,7 +101,7 @@ def create_app() -> FastAPI:
         
     @app.on_event("startup")
     def startup_event():
-        start_scheduler(scheduled_rebuild)
+        start_scheduler(scheduled_rebuild, expire_subscriptions)
     try:
         psycopg2.connect("postgresql://postgres:TaxiMela123@db.cldxkswkintnwktfjwrf.supabase.co:5432/postgres")
         print("OK")
