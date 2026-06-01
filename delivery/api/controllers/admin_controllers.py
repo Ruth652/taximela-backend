@@ -10,7 +10,8 @@ from usecases.admin_usecase import (
     update_user_status_usecase,
     AdminPermissionsError,
     UserNotFoundError,
-    list_admins_for_super_admin
+    list_admins_for_super_admin,
+    verify_admin_permissions,
 )
 from pydantic import BaseModel
 from delivery.api.dependencies.admin_auth import verify_super_admin_permissions
@@ -30,6 +31,23 @@ async def list_users_controller(
     try:
         firebase_uid = firebase_user["uid"]
         return list_users_for_admin(db, firebase_uid, page, limit, status)
+    except AdminPermissionsError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+async def get_user_by_id_controller(
+    user_id: str,
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        firebase_uid = firebase_user["uid"]
+        verify_admin_permissions(db, firebase_uid)
+        from repository.user_repository import UserRepository
+        user = UserRepository(db).get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
     except AdminPermissionsError as e:
         raise HTTPException(status_code=403, detail=str(e))
 

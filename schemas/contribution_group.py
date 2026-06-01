@@ -19,5 +19,5 @@ class PaginatedContributionGroupResponse(BaseModel):
     
 class ApproveContributionGroupRequest(BaseModel):
     group_id: int
-    final_payload: dict
+    final_payload: Optional[dict] = None
     
