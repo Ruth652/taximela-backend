@@ -77,18 +77,31 @@ async def verify_subscription(
 # ── Chapa webhook (public — no auth) ─────────────────────────────────────────
 
 @router.post("/webhook")
-async def chapa_webhook(
+async def chapa_webhook_post(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    """
-    Chapa calls this endpoint after payment success/failure.
-    Verifies the payment and activates the subscription.
-    """
+    """Chapa calls this via POST after payment."""
     body = await request.json()
     tx_ref = body.get("tx_ref") or body.get("trx_ref")
-
     if not tx_ref:
         return {"message": "No tx_ref in webhook payload"}
-
     return handle_webhook_usecase(db, tx_ref)
+
+
+@router.get("/webhook")
+async def chapa_webhook_get(
+    request: Request,
+    db: Session = Depends(get_db),
+    trx_ref: str = None,
+    tx_ref: str = None,
+    status: str = None,
+):
+    """
+    Chapa also calls this via GET with query params after payment.
+    Handles: /webhook?trx_ref=...&status=success
+    """
+    ref = trx_ref or tx_ref
+    if not ref:
+        return {"message": "No tx_ref in webhook params"}
+    return handle_webhook_usecase(db, ref)
