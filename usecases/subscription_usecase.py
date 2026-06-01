@@ -43,8 +43,8 @@ def initiate_subscription_usecase(db: Session, firebase_uid: str, business_id: s
             detail=f"Business already has an active subscription until {existing.expires_at.strftime('%Y-%m-%d')}"
         )
 
-    # Generate unique tx_ref
-    tx_ref = f"taximela-{business_id}-{uuid.uuid4().hex[:8]}"
+    # Generate unique tx_ref — max 50 chars (Chapa limit)
+    tx_ref = f"tm-{str(business_id).replace('-', '')[:16]}-{uuid.uuid4().hex[:8]}"
 
     # Get user info for Chapa
     from repository.user_repository import UserRepository
