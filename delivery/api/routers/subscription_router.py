@@ -7,6 +7,7 @@ from infrastructure.auth.firebase_auth import get_current_firebase_user as verif
 from usecases.subscription_usecase import (
     initiate_subscription_usecase,
     handle_webhook_usecase,
+    verify_subscription_usecase,
     get_subscription_status_usecase,
     get_subscription_history_usecase,
 )
@@ -57,6 +58,20 @@ async def get_subscription_history(
     Returns paginated subscription history for a business.
     """
     return get_subscription_history_usecase(db, user["uid"], business_id, page, limit)
+
+
+@router.post("/verify/{tx_ref}")
+async def verify_subscription(
+    tx_ref: str,
+    db: Session = Depends(get_db),
+    user: dict = Depends(verify_token),
+):
+    """
+    Called by the frontend immediately after Chapa redirects back to the success page.
+    Verifies the payment and activates the subscription on demand.
+    Safe to call multiple times — idempotent.
+    """
+    return verify_subscription_usecase(db, user["uid"], tx_ref)
 
 
 # ── Chapa webhook (public — no auth) ─────────────────────────────────────────

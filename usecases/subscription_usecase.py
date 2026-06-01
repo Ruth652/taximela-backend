@@ -84,13 +84,45 @@ def handle_webhook_usecase(db: Session, tx_ref: str) -> dict:
     """
     Called by Chapa webhook. Verifies payment and activates subscription.
     """
+    return _verify_and_activate(db, tx_ref)
+
+
+def verify_subscription_usecase(db: Session, firebase_uid: str, tx_ref: str) -> dict:
+    """
+    Called by the frontend after Chapa redirects back.
+    Verifies payment on demand and activates subscription if successful.
+    Idempotent — safe to call even if webhook already fired.
+    """
+    auth_repo = AuthIdentityRepository(db)
+    sub_repo = SubscriptionRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    sub = sub_repo.get_by_tx_ref(tx_ref)
+    if not sub:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    # If already activated by webhook, just return success
+    if sub.status.value == "active":
+        return {"message": "Subscription already active", "status": "active"}
+
+    return _verify_and_activate(db, tx_ref)
+
+
+def _verify_and_activate(db: Session, tx_ref: str) -> dict:
+    """Shared logic: verify with Chapa and activate if successful."""
     sub_repo = SubscriptionRepository(db)
 
     sub = sub_repo.get_by_tx_ref(tx_ref)
     if not sub:
         raise HTTPException(status_code=404, detail="Subscription not found")
 
-    # Verify with Chapa
+    # Already active — idempotent
+    if sub.status.value == "active":
+        return {"message": "Subscription activated", "status": "active"}
+
     try:
         chapa_data = verify_payment(tx_ref)
     except Exception as e:
@@ -101,10 +133,10 @@ def handle_webhook_usecase(db: Session, tx_ref: str) -> dict:
 
     if payment_status == "success":
         sub_repo.activate(sub, duration_days=SUBSCRIPTION_DURATION_DAYS)
-        return {"message": "Subscription activated"}
+        return {"message": "Subscription activated", "status": "active"}
     else:
         sub_repo.mark_failed(sub)
-        return {"message": f"Payment not successful: {payment_status}"}
+        return {"message": f"Payment not successful: {payment_status}", "status": payment_status}
 
 
 def get_subscription_status_usecase(db: Session, firebase_uid: str, business_id: str) -> dict:
