@@ -108,3 +108,46 @@ def verify_super_admin_permissions(db: Session, firebase_uid: str):
         raise AdminPermissionsError("Admin account is inactive")
 
     return admin
+
+
+def get_current_super_admin(
+    firebase_user: dict = Depends(get_current_firebase_user),
+    db: Session = Depends(get_db),
+):
+    firebase_uid = firebase_user["uid"]
+
+    identity = (
+        db.query(AuthIdentity)
+        .filter(AuthIdentity.firebase_uid == firebase_uid)
+        .first()
+    )
+
+    if not identity or identity.entity_type != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized as admin",
+        )
+
+    admin = (
+        db.query(Admin)
+        .filter(
+            Admin.user_id == identity.entity_id,
+            Admin.is_active == True
+        )
+        .first()
+    )
+
+    if not admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin record not found",
+        )
+
+    # ONLY super admin allowed
+    if admin.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only super admin can access this resource",
+        )
+
+    return admin
