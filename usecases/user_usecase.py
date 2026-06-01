@@ -1,12 +1,11 @@
 import secrets
 
-from sqlalchemy.exc import IntegrityError
 from repository.user_repository import UserRepository
 from repository.auth_identity_repository import AuthIdentityRepository
 from uuid import uuid4
-from infrastructure.config.cloudinary import upload_profile_image
 from infrastructure.auth.firebase_auth import set_firebase_custom_claims, generate_password_reset_link
 from infrastructure.email_service import send_admin_invite_email
+from services.notification_service import NotificationService
 from datetime import date
 
 
@@ -15,7 +14,6 @@ class NoUpdateFieldsError(Exception): pass
 class PermissionDeniedError(Exception): pass
 class InvalidFullNameError(Exception): pass
 class InvalidLanguageError(Exception): pass
-
 
 
 # =========================
@@ -30,18 +28,15 @@ def create_user_first_login(
     *,
     entity_type: str = "user"
 ):
-
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
     payload = payload or {}
 
-    # 1️⃣ Check if Firebase identity already exists
     existing_user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-
     if existing_user_id:
         user = user_repo.get_user_by_id(existing_user_id)
 
-        # 🔥 update FCM token if changed
+        # Update FCM token if changed
         if fcm_token and user.fcm_token != fcm_token:
             user.fcm_token = fcm_token
             db.commit()
@@ -54,10 +49,9 @@ def create_user_first_login(
             "full_name": user.full_name,
         }
 
-    # 2️⃣ Check if user exists by email
+    # Check if user exists by email
     user = user_repo.get_user_by_email(email)
 
-    # 3️⃣ Create user if not exists
     if not user:
         user = user_repo.create_user(
             email=email,
@@ -68,9 +62,8 @@ def create_user_first_login(
             fcm_token=fcm_token
         )
         print(f"[USER] Created new user {user.id}")
-
     else:
-        # 🔥 update FCM token if existing email user logs in
+        # Update FCM token if existing email user logs in
         if fcm_token and user.fcm_token != fcm_token:
             user.fcm_token = fcm_token
             db.commit()
@@ -78,7 +71,6 @@ def create_user_first_login(
 
     user_id = user.id
 
-    
     auth_repo.create_auth_identity(
         firebase_uid=firebase_uid,
         entity_id=user_id,
@@ -103,11 +95,9 @@ def create_admin_first_login(
     create_firebase_user,
     fcm_token: str | None = None
 ):
-
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
-    # 1. Verify the creator exists and is a super_admin
     creator_user_id = auth_repo.get_user_uuid_by_firebase_uid(creator_firebase_uid)
     if not creator_user_id:
         raise UserNotFoundError()
@@ -119,24 +109,17 @@ def create_admin_first_login(
     if not creator_admin_id:
         raise PermissionDeniedError()
 
-    # 2. Generate a secure random temporary password (admin will replace via email link)
     temp_password = secrets.token_urlsafe(16)
 
-    # 3. Create the Firebase user with the temp password
     firebase = create_firebase_user(
         email=new_user.email,
-
         password=temp_password,
         display_name=new_user.full_name
     )
 
-    # 4. Set the admin role as a custom claim on the Firebase token
     set_firebase_custom_claims(firebase.uid, {"role": new_user.role.value})
-
-    # 5. Generate a password-reset link so the admin can set their own password
     reset_link = generate_password_reset_link(new_user.email)
 
-    # 6. Create the user record in the main DB
     user = user_repo.create_user(
         email=new_user.email,
         full_name=new_user.full_name,
@@ -144,14 +127,12 @@ def create_admin_first_login(
         fcm_token=fcm_token
     )
 
-    # 7. Map Firebase UID → internal user ID
     auth_repo.create_auth_identity(
         firebase_uid=firebase.uid,
         entity_type="admin",
         entity_id=user.id
     )
 
-    # 8. Promote the user to admin with the specified role
     user_repo.promote_to_admin(
         user.id,
         role=new_user.role,
@@ -160,13 +141,21 @@ def create_admin_first_login(
 
     db.commit()
 
-    # 9. Send the branded invitation email with the password-setup link
     send_admin_invite_email(
         to=new_user.email,
         full_name=new_user.full_name,
         role=new_user.role.value,
         reset_link=reset_link,
     )
+
+    # Notify super_admins that a new admin was added
+    try:
+        NotificationService(db).notify(
+            event="admin_added",
+            message=f"{new_user.full_name} ({new_user.role.value}) was added as an admin",
+        )
+    except Exception:
+        pass
 
     return {
         "id": user.id,
@@ -189,6 +178,10 @@ def get_current_user(db, firebase_uid: str):
 
     return user_repo.get_user_by_id(user_id)
 
+
+# =========================
+# UPDATE CURRENT USER
+# =========================
 async def update_current_user(
     db,
     firebase_uid: str,
@@ -200,7 +193,6 @@ async def update_current_user(
     user_repo = UserRepository(db)
 
     user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-
     if not user_id:
         raise UserNotFoundError()
 
@@ -208,82 +200,80 @@ async def update_current_user(
 
     if full_name is not None:
         full_name = full_name.strip()
-
         if full_name.lower() == "string":
             raise InvalidFullNameError("Full name cannot be 'string'")
-        
         if len(full_name) < 3 or len(full_name) > 100:
             raise InvalidFullNameError("Full name must be between 3 and 100 characters")
         update_data["full_name"] = full_name
+
     if preferred_language is not None:
         preferred_language = preferred_language.strip().lower()
-
         if preferred_language == "string":
-            raise InvalidLanguageError(
-                "Preferred language must be 'en' or 'am'"
-            )
-
+            raise InvalidLanguageError("Preferred language must be 'en' or 'am'")
         if preferred_language not in {"en", "am"}:
-            raise InvalidLanguageError(
-                "Preferred language must be 'en' or 'am'"
-            )
-    if profile_picture is not None:
-
-        image_url = upload_profile_image(profile_picture)
-
-        update_data["profile_picture_url"] = image_url
-
+            raise InvalidLanguageError("Preferred language must be 'en' or 'am'")
         update_data["preferred_language"] = preferred_language
+
+    if profile_picture is not None:
+        from infrastructure.config.cloudinary import upload_profile_image
+        image_url = upload_profile_image(profile_picture)
+        update_data["profile_picture_url"] = image_url
 
     if not update_data:
         raise NoUpdateFieldsError()
 
     return user_repo.update_user_profile(user_id, update_data)
-    
-def track_daily_activity(db, firebase_uid: str):
 
+
+# =========================
+# DAILY ACTIVITY TRACKING
+# =========================
+def track_daily_activity(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
     user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-
     if not user_id:
         raise UserNotFoundError()
 
     user = user_repo.get_user_by_id(user_id)
-
     today = date.today()
 
     if user.last_active_date:
         days_inactive = (today - user.last_active_date.date()).days
-
         if days_inactive >= 30:
             penalty_cycles = days_inactive // 30
             user.rating_score -= penalty_cycles * 5
 
-    if (
-        user.last_active_date and
-        user.last_active_date.date() == today
-    ):
+    if user.last_active_date and user.last_active_date.date() == today:
         return user
 
     user.rating_score += 1
-
     user_repo.update_daily_activity(user)
 
     return user
+
 
 def update_user_navigation_done(db, firebase_uid: str):
     auth_repo = AuthIdentityRepository(db)
     user_repo = UserRepository(db)
 
     user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
-
     if not user_id:
         raise UserNotFoundError()
 
     user = user_repo.get_user_by_id(user_id)
-    
     user_repo.update_user_navigation_done(user)
-
     return user
+
+
+def update_fcm_token(db, firebase_uid: str, fcm_token: str):
+    auth_repo = AuthIdentityRepository(db)
+    user_repo = UserRepository(db)
+
+    user_id = auth_repo.get_user_uuid_by_firebase_uid(firebase_uid)
+    if not user_id:
+        raise UserNotFoundError()
+
+    user_repo.update_fcm_token(user_id, fcm_token)
+    return {"message": "FCM token updated"}

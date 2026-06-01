@@ -97,11 +97,11 @@ def get_current_firebase_user(
 
 def create_firebase_user(email: str, password: str, display_name: str = None, fcm_token: str = None):
     try:
+        # fcm_token is stored in our DB only — not a Firebase Auth field
         user = auth.create_user(
             email=email,
             password=password,
             display_name=display_name,
-            fcm_token=fcm_token
         )
         return user
     
