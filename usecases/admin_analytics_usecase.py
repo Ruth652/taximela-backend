@@ -13,3 +13,10 @@ class AdminAnalyticsUsecase:
             "total_registrations": self.repo.get_total_registrations(),
             "contributions": self.repo.get_total_contributions(),
         }
+
+
+    def get_contribution_trend(self, period):
+
+        return self.repo.get_contribution_trend(
+            period=period
+        )
