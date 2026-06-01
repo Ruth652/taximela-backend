@@ -35,6 +35,7 @@ httpcore==1.0.9
 httpx==0.28.1
 hyperframe==6.1.0
 idna==3.11
+iniconfig==2.3.0
 markdown-it-py==4.2.0
 mdurl==0.1.2
 mmh3==5.2.1
@@ -42,6 +43,7 @@ msgpack==1.1.2
 multidict==6.7.1
 numpy==2.4.6
 packaging==26.2
+pluggy==1.6.0
 polyline==2.0.4
 postgrest==2.30.0
 propcache==0.5.2
@@ -58,6 +60,8 @@ pyiceberg==0.11.1
 PyJWT==2.11.0
 pyparsing==3.3.2
 pyroaring==1.1.0
+pytest==9.0.3
+pytest-asyncio==1.4.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 python-multipart==0.0.29
