@@ -14,6 +14,7 @@ from .contribution_group_router import router as contribution_group_router
 from .service_provider_router import router as service_provider_router
 from .admin_fare_config import router as fare_config_router
 from .notification_router import router as notification_router
+from .auth_handoff_router import router as auth_handoff_router
 
 
 all_routers = [
@@ -24,6 +25,7 @@ all_routers = [
     {"router": contribution_router, "prefix": ""},
     {"router": contributions_router, "prefix": ""},
     {"router": user_router, "prefix": "/api"},
+    {"router": auth_handoff_router, "prefix": ""},
     {"router": admin_router, "prefix": ""},
     {"router": admin_user_router, "prefix": ""},
     {"router": admin_business_router, "prefix": ""},

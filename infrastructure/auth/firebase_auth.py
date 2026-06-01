@@ -151,6 +151,22 @@ def send_push_notification(
         print(f"Push notification failed: {e}")
         return None
 
+def create_firebase_custom_token(firebase_uid: str) -> str:
+    """
+    Mint a Firebase custom token for web signInWithCustomToken after mobile handoff.
+    """
+    try:
+        token = auth.create_custom_token(firebase_uid)
+        if isinstance(token, bytes):
+            return token.decode("utf-8")
+        return token
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create custom token: {str(e)}",
+        )
+
+
 def generate_password_reset_link(email: str) -> str:
     """
     Generates a Firebase password-reset link for the given email.
