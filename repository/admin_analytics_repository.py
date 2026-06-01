@@ -180,3 +180,45 @@ class AdminAnalyticsRepository:
                 "target_type": target_breakdown
             }
         }
+
+        
+    def get_users_growth(self):
+        result = self.db.execute(
+            text("""
+                SELECT
+                    DATE_TRUNC('month', created_at) AS month,
+                    COUNT(*) AS count
+                FROM users
+                GROUP BY month
+                ORDER BY month
+            """)
+        )
+
+        return [
+            {
+                "date": row.month.strftime("%Y-%m-%d"),
+                "count": row.count
+            }
+            for row in result
+        ]
+        
+    def get_businesses_growth(self):
+        result = self.db.execute(
+            text("""
+                SELECT
+                    DATE_TRUNC('month', created_at) AS month,
+                    COUNT(*) AS count
+                FROM businesses
+                GROUP BY month
+                ORDER BY month
+            """)
+        )
+
+        return [
+            {
+                "date": row.month.strftime("%Y-%m-%d"),
+                "count": row.count
+            }
+            for row in result
+        ]
+

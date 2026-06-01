@@ -245,7 +245,7 @@ class ContributionGroupUseCase:
     def _handle_route(self, group, data: dict):
         db = self.otp_db
 
-        if not data:
+        if group.action != "delete" and not data:
             raise HTTPException(status_code=400, detail="No route data provided")
         
         if group.action in ["edit", "delete"] and not group.target_id:

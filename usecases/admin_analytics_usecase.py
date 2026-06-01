@@ -20,3 +20,11 @@ class AdminAnalyticsUsecase:
         return self.repo.get_contribution_trend(
             period=period
         )
+
+        
+    def get_users_growth_analytics(self):
+        return {"users_growth": self.repo.get_users_growth()}
+
+    def get_businesses_growth_analytics(self):
+        return {"businesses_growth": self.repo.get_businesses_growth()}
+
