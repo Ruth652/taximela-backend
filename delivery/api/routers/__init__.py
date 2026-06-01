@@ -17,6 +17,9 @@ from .notification_router import router as notification_router
 from .auth_handoff_router import router as auth_handoff_router
 from .admin_analytics_router import router as admin_analytics_router
 
+from .subscription_router import router as subscription_router
+
+
 
 all_routers = [
     {"router": health_router, "prefix": ""},
@@ -36,4 +39,6 @@ all_routers = [
     {"router": fare_config_router, "prefix": ""},
     {"router": notification_router, "prefix": ""},
     {"router": admin_analytics_router, "prefix": ""},
+    {"router": subscription_router, "prefix": ""},
+
 ]

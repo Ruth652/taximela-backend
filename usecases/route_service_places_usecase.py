@@ -108,6 +108,9 @@ def get_all_routes_service_places(
                 b.latitude,
                 b.longitude,
                 b.category_id,
+                b.is_featured,
+                b.featured_until,
+                b.business_logo,
                 ST_Distance(b.geom, route.geog) AS distance_m
             FROM businesses b
             CROSS JOIN route
@@ -126,7 +129,10 @@ def get_all_routes_service_places(
                 OR distance_m > :cursor_distance
                 OR (distance_m = :cursor_distance AND id > CAST(:cursor_id AS uuid))
             )
-        ORDER BY distance_m ASC, id ASC
+        ORDER BY
+            CASE WHEN is_featured = true AND (featured_until IS NULL OR featured_until > NOW()) THEN 0 ELSE 1 END ASC,
+            distance_m ASC,
+            id ASC
         LIMIT :limit
     """)
 
@@ -150,6 +156,8 @@ def get_all_routes_service_places(
             "longitude": float(row["longitude"]),
             "category_id": str(row["category_id"]) if row["category_id"] else None,
             "distance_m": float(row["distance_m"]),
+            "is_featured": bool(row["is_featured"]),
+            "business_logo": row["business_logo"],
         }
         for row in rows
     ]
