@@ -15,6 +15,8 @@ from usecases.user_usecase import (
     UserNotFoundError,
     NoUpdateFieldsError,
     PermissionDeniedError,
+    track_daily_activity,
+    update_user_navigation_done,
     InvalidFullNameError,
     InvalidLanguageError,
 )

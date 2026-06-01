@@ -18,7 +18,7 @@ async def contribution_stats(stats=Depends(get_contribution_stats_controller)):
 @router.get("/")
 async def get_user_contributions(
         page: int = Query(1, ge=1),
-        limit: int = Query(10, ge=1, le=100),
+        limit: int = Query(5, ge=1, le=100),
         data=Depends(get_user_contributions_controller)
 ):
     """
