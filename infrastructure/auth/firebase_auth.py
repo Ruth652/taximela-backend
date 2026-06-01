@@ -1,54 +1,5 @@
-# import firebase_admin
-# import os
-# from firebase_admin import auth, credentials
-# from fastapi import Depends, HTTPException, status
-# from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-# # Initialize Firebase app only once
 
-# FIREBASE_CREDENTIALS = os.getenv("FIREBASE_CREDENTIALS")
-# if not firebase_admin._apps:
-#     cred = credentials.Certificate(FIREBASE_CREDENTIALS)
-#     firebase_admin.initialize_app(cred)
-
-# security = HTTPBearer()
-
-# def get_current_firebase_user(
-#     credentials: HTTPAuthorizationCredentials = Depends(security)
-# ):
-#     """
-#     Verify Firebase token and return decoded token.
-#     Contains uid, email, and other claims.
-#     """
-#     token = credentials.credentials
-#     try:
-#         decoded_token = auth.verify_id_token(token)
-#         return decoded_token
-#     except Exception:
-#     raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid or expired token"
-#         )
-# def create_firebase_user(email: str, password: str, display_name: str = None):
-#     try:
-#         user = auth.create_user(
-#             email=email,
-#             password=password,
-#             display_name=display_name
-#         )
-#         return user
-    
-#     except auth.EmailAlreadyExistsError:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Email already exists in Firebase."
-#         )
-
-#     except Exception as e:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=f"Firebase error: {str(e)}"
-#         )
 import os
 import json
 import firebase_admin
@@ -150,6 +101,22 @@ def send_push_notification(
     except Exception as e:
         print(f"Push notification failed: {e}")
         return None
+
+def create_firebase_custom_token(firebase_uid: str) -> str:
+    """
+    Mint a Firebase custom token for web signInWithCustomToken after mobile handoff.
+    """
+    try:
+        token = auth.create_custom_token(firebase_uid)
+        if isinstance(token, bytes):
+            return token.decode("utf-8")
+        return token
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create custom token: {str(e)}",
+        )
+
 
 def generate_password_reset_link(email: str) -> str:
     """

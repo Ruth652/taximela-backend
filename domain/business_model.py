@@ -10,7 +10,8 @@ from sqlalchemy import (
     Float,
     Text,
     TIMESTAMP,
-    ForeignKey
+    ForeignKey,
+    Boolean,
 )
 
 from sqlalchemy.dialects.postgresql import UUID
@@ -45,6 +46,8 @@ class Business(Base):
     category_id = Column(UUID(as_uuid=True), ForeignKey("business_categories.id"))
 
     approved_at = Column(TIMESTAMP, server_default=text("now()"))
+    is_featured = Column(Boolean, default=False, nullable=False)
+    featured_until = Column(TIMESTAMP, nullable=True)
 
     created_at = Column(TIMESTAMP, server_default=text("now()"))
     updated_at = Column(TIMESTAMP, server_default=text("now()"))
