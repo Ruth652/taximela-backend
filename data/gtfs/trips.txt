@@ -5,3 +5,5 @@ trip_212_Cinema_to_Megenagna,3,everyday,Megenagna Police Station,shape_212_cinem
 trip_92_MegenagnaInside_to_TafoEnd,4,everyday,Tafo Adebabay End,shape_92_megenagnainside_tafoend,0
 trip_119_MegenagnaUp_to_TafoMission,5,everyday,Tafo Mission,shape_119_megenagnaup_tafomission,0
 trip_85_DerartuAdebabay_to_TafoMission,6,everyday,Tado Mission,shape_85_derartuadebabay_tafomission,0
+6aaad7ef-a98d-46ab-be9b-34bc1aa5b892,12,everyday,,,0
+d31be927-811c-4b06-83ad-7cda832c7459,13,everyday,,,0

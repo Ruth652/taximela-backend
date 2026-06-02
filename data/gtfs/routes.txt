@@ -5,3 +5,6 @@ route_id,route_short_name,route_long_name,route_type
 4,92,Megenagna Inside → Tafo Adebabay End,3
 5,119,Megenagna Up → Tafo Mission,3
 6,85,Derartu Adebabay → Tafo Mission,3
+8,212,Trial Trial,3
+12,213,Trial of 4 Kilo,3
+13,200,To be Deleted Route,3

@@ -2,7 +2,6 @@ stop_id,stop_name,stop_lat,stop_lon
 2,Derartu Adebabay,9.021398,38.871342
 3,CMC Compound (Across),9.021229,38.850449
 4,Gurd Shola (Athletoch),9.019413,38.824061
-5,Megenagna Down,9.020169,38.804169
 6,Shola,9.025192,38.796031
 7,UK Embassy,9.029995,38.787304
 8,Kebena,9.033981,38.776317
@@ -25,4 +24,8 @@ stop_id,stop_name,stop_lat,stop_lon
 25,Tafo Mission,9.07884,38.904154
 26,Fiyel Bet,9.010284,38.851789
 27,Summit,9.002437,38.851577
-1,Bole,9.01,38.76
+5,Mexico Square,9.01,38.761
+31,Summit Corner,9.0301,38.8101
+32,station abc,9.0360088,38.7663808
+34,4 Kilo Test 1,9.03266219763168,38.7642929535636
+35,Test 4 Kilo,9.035,38.82
