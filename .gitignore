@@ -15,3 +15,5 @@ alembic.ini
 data/graph.obj
 data/gtfs.zip
 gtfs.zip
+firebase_key.json
+.env
